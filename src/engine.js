@@ -10,6 +10,7 @@ import { createMotionSignal } from './lib/signal.js';
 import { createCompressionDetector } from './lib/compressionDetector.js';
 import { createRateTracker } from './lib/rate.js';
 import { createFormTracker } from './lib/form.js';
+import { createFatigueTracker } from './lib/fatigue.js';
 import { createStage } from './ui/stage.js';
 
 const STATE_INTERVAL_MS = 100;
@@ -21,7 +22,7 @@ const defaultTimers = {
   now: () => (globalThis.performance ? globalThis.performance.now() : Date.now()),
 };
 
-const SIM_KEYS = ['cpm', 'bend', 'lean', 'recoil', 'travel'];
+const SIM_KEYS = ['cpm', 'bend', 'lean', 'recoil', 'travel', 'fatigue', 'swap'];
 
 /** Simulator settings read from the address, over the simulator defaults. */
 export function readSimParams(search) {
@@ -34,6 +35,8 @@ export function readSimParams(search) {
     if (Number.isFinite(n)) out[key] = n;
   }
   out.cpm = Math.max(1, out.cpm);
+  out.fatigue = Math.min(1, Math.max(0, out.fatigue));
+  out.swap = Math.max(0, out.swap);
   return out;
 }
 
@@ -81,6 +84,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
   const detector = createCompressionDetector(config);
   const rate = createRateTracker(config);
   const form = createFormTracker(config);
+  const fatigue = createFatigueTracker(config);
 
   let view = null;
   let source = null; // sim source or pose tracker
@@ -130,6 +134,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
     const partial = detector.push(sample);
     if (!partial) return;
     const event = { ...partial, ...form.complete(partial), depthCm: null };
+    event.travelRatio = fatigue.push(event);
     rate.onCompression(event);
     compressions += 1;
     safeCall(onCompression, event);
@@ -146,6 +151,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
       rate: cpm,
       rateZone: rate.zone(cpm),
       issues: { ...form.getLiveIssues(), depth: null },
+      fatigue: fatigue.getState(),
       setup: { ok: true, checks: [] },
     };
   }
@@ -155,7 +161,8 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
     if (debug && view) {
       view.setDebugText(
         `${fps.toFixed(0)} fps · ${state.compressions} compressions · rate ${state.rate ?? '–'}` +
-          (state.personVisible ? '' : ' · no person'),
+          (state.personVisible ? '' : ' · no person') +
+          (state.fatigue.slipping ? ` · slipping: ${state.fatigue.signs.join(', ')}` : ''),
       );
     }
     safeCall(onState, state);
@@ -232,6 +239,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
       detector.reset();
       rate.reset();
       form.reset();
+      fatigue.startTurn();
       compressions = 0;
     },
     markRest() {
@@ -241,9 +249,26 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
       if (isSim && source && typeof source.rest === 'function') {
         source.rest(SIM_REST_MS);
         signal.reset();
-        detector.reset();
+        detector.restart();
       }
       form.markRest();
+    },
+    /**
+     * A switch begins: the next compressions set the new compressor's own baseline.
+     * Drops what belonged to the previous person's body (rest reference, live form
+     * issues). Does not zero the compression count.
+     */
+    markTurn() {
+      fatigue.startTurn();
+      form.reset();
+      form.dropRest();
+      // Simulator: the figure stops for `swap` seconds, then a fresh compressor starts
+      // from rest with the fatigue clock restarted.
+      if (isSim && source && typeof source.rest === 'function') {
+        source.rest(simParams.swap * 1000);
+        signal.reset();
+        detector.restart();
+      }
     },
     setDebug(on) {
       debug = Boolean(on);

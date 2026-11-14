@@ -15,6 +15,8 @@ export const SIM_DEFAULTS = {
   scale: 1, // 1 = torso about 30% of the frame height
   drift: 0, // slow posture drift of the upper body (hips stay still), torso units per second
   motionStartMs: 0, // before this time the figure kneels still at full release; compressions start here
+  fatigue: 0, // 0 never tires; 1: from 15 s into the turn pushes shrink and the rate drops (25% and 12/min by 35 s)
+  swap: 5, // seconds the figure stops after markTurn() before a fresh compressor starts
   seed: 1,
 };
 
@@ -37,6 +39,45 @@ function gaussian(rand) {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand());
 }
 
+// Fatigue ramp: none before FATIGUE_START_MS into the turn, full by FATIGUE_FULL_MS, then held.
+const FATIGUE_START_MS = 15000;
+const FATIGUE_FULL_MS = 35000;
+const FATIGUE_TRAVEL_LOSS = 0.25; // share of push size lost at full fatigue (× fatigue)
+const FATIGUE_RATE_LOSS = 12; // compressions per minute lost at full fatigue (× fatigue)
+
+/** 0 → 1 fatigue ramp at `tMs` into the turn. */
+export function fatigueLevel(tMs) {
+  return Math.min(1, Math.max(0, (tMs - FATIGUE_START_MS) / (FATIGUE_FULL_MS - FATIGUE_START_MS)));
+}
+
+/**
+ * Compression cycles completed `tMs` into the turn: the integral of a rate that
+ * falls by FATIGUE_RATE_LOSS × fatigue along the ramp. With fatigue 0 it is tMs·cpm/60000.
+ */
+export function cyclesAt(tMs, cpm, fatigue = 0) {
+  if (tMs <= 0) return 0;
+  const drop = FATIGUE_RATE_LOSS * Math.max(0, fatigue); // per minute at full ramp
+  const a = FATIGUE_START_MS;
+  const b = FATIGUE_FULL_MS;
+  // ∫ drop·level(s) ds from 0 to tMs, in cpm·ms
+  let lost = 0;
+  if (tMs > a) {
+    const rampEnd = Math.min(tMs, b);
+    lost += (drop * (rampEnd - a) ** 2) / (2 * (b - a));
+    if (tMs > b) lost += drop * (tMs - b);
+  }
+  return (cpm * tMs - lost) / 60000;
+}
+
+/** Displacement 0 (top) .. 1 (bottom) after `cycles` cycles; see compressionPhase. */
+export function phaseFromCycles(cycles, recoil) {
+  if (cycles < 0) return 0;
+  const wave = (1 - Math.cos(2 * Math.PI * (cycles % 1))) / 2; // 0 at top, 1 at bottom
+  if (cycles < 0.5) return wave;
+  const r = Math.min(1, Math.max(0, recoil));
+  return 1 - r + r * wave;
+}
+
 /**
  * Downward shoulder displacement as a fraction of `travel`, 0 (top) .. 1 (bottom).
  * `tMs` is time since compressions started. The first push starts from full release;
@@ -44,11 +85,7 @@ function gaussian(rand) {
  */
 export function compressionPhase(tMs, cpm, recoil) {
   if (tMs < 0) return 0;
-  const cycles = (tMs * cpm) / 60000;
-  const wave = (1 - Math.cos(2 * Math.PI * (cycles % 1))) / 2; // 0 at top, 1 at bottom
-  if (cycles < 0.5) return wave;
-  const r = Math.min(1, Math.max(0, recoil));
-  return 1 - r + r * wave;
+  return phaseFromCycles((tMs * cpm) / 60000, recoil);
 }
 
 /**
@@ -70,7 +107,9 @@ export function simFrame(tMs, params = {}) {
 
   // Anchor: hands rest on the pillow, centre of the frame, at 80% height.
   const driftPx = p.drift * T * (tMs / 1000);
-  const down = compressionPhase(tMs - p.motionStartMs, p.cpm, p.recoil) * p.travel * T;
+  const turnMs = tMs - p.motionStartMs; // the fatigue clock restarts with every turn
+  const travel = p.travel * (1 - FATIGUE_TRAVEL_LOSS * Math.max(0, p.fatigue) * fatigueLevel(turnMs));
+  const down = phaseFromCycles(cyclesAt(turnMs, p.cpm, p.fatigue), p.recoil) * travel * T;
   const wristRest = { x: W * 0.55, y: H * 0.8 - 0.5 * T * (1 - p.scale) };
   const wrist = { x: wristRest.x, y: wristRest.y + down + driftPx };
   // Shoulder above the wrist, tilted back by the lean angle (hands ahead of shoulders).

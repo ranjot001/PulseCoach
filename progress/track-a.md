@@ -50,3 +50,16 @@
 - No config values changed.
 - **Tuning watch at the webcam:** the rest reference is taken once per session. If a learner settles lower after "go" (shifts their knees), every release can look incomplete. If good technique turns Recoil red, lower `RECOIL_MIN_RATIO` first.
 - Human checks still to do: main page with the camera; bend elbows → Elbows red within three pushes, green again when straight; sit back with angled arms → Position red; don't come fully up → Recoil red; best technique for 15 s → all three green (if not, loosen that threshold in `src/config.js`).
+
+## A5 Fatigue signal and turns (on `track-a`)
+
+- **For Track B: `engine.markTurn()`, `state.fatigue` and `event.travelRatio` are ready** (Contract 1 as written in CLAUDE.md). `state.fatigue` is always present: `{ slipping, signs }`, signs in the order `'shallower'`, `'slower'`, `'elbows'`. `markTurn()` does not zero the count; event indexes keep counting across turns. In the simulator, `markTurn()` stops the figure for `swap` seconds (default 5), then a fresh compressor starts; `?sim=1&fatigue=1` slips at about 30–33 s into each turn.
+- Built: `src/lib/fatigue.js` `createFatigueTracker(config)` with `startTurn()`, `push(event)` → `travelRatio`, `getState()`, `getBaseline()`. Baseline = compressions in the first `FATIGUE_BASELINE_MS` of a turn and at least 6: median travel, median rate, share of locked elbows. Signs compare the last `FATIGUE_WINDOW` compressions with it. Intervals longer than `RATE_STALE_MS` are ignored for rate.
+- `src/engine.js`: `markTurn()` starts a fresh fatigue turn and drops the previous person's rest reference and live form issues (recoil falls back to its rolling reference). `reset()` also starts a fresh turn. Debug text shows `slipping: …`.
+- Simulator: `fatigue` (0–1) shrinks pushes by up to 25% and the rate by up to 12/min, ramping from 15 s to 35 s into each turn; the phase is the integral of the rate, so the wave stays smooth. `swap` from the address. `fatigue=0` gives exactly the old motion.
+- `dev/stage.html`: "Start session" (`reset()` + `markRest()`) and "Mark turn" buttons, fatigue status, and the last compression's travelRatio and form numbers.
+- **Detector change:** `travel` is now measured on the smoothed signal, not the detrended one. Detrending inflates the wave by about 9% at 110/min and 18% at 98/min, so a tiring compressor who slowed down looked like they were pushing harder; a true 25% shrink read as 15%. Now it reads 24%. Counting is unchanged in the A3 sweep.
+- New `detector.restart()`: forgets the stroke in progress but keeps the index. The simulator's `markRest()` now uses it too.
+- Config: added the five `FATIGUE_*` values from CLAUDE.md to the Track A section, unchanged.
+- Sweep: 180 fresh 60 s turns (cpm 100/110/120, 1–3× noise, 20 seeds) never falsely slipped. `fatigue=1`: slipping in 20/20 turns at 30–33 s with 'shallower' and 'slower'. `fatigue=0.5` stays under the thresholds by design (12.5% and 6/min).
+- Human checks still to do: `/dev/stage.html` with the camera, press "Start session", 15 s of good compressions then clearly smaller and slower → "slipping" within about six pushes with the right signs; "Mark turn" then good compressions → slipping clears, new baseline after 10 s; 40 s of steady good compressions → never slipping (if it does, raise the `FATIGUE_*` thresholds).

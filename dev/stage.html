@@ -10,27 +10,58 @@
       @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
       #state { margin: 0; font-size: 1rem; }
       #error { color: var(--bad); font-size: 1.25rem; }
+      .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+      .controls button {
+        font: 600 1rem var(--font-ui, system-ui, sans-serif); padding: 0.6rem 1rem; cursor: pointer;
+        color: var(--fg); background: var(--surface-2, #162031); border: 1px solid var(--line, #24324a);
+        border-radius: var(--radius, 18px);
+      }
+      #fatigue { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem; }
+      #event { margin: 0 0 0.75rem; color: var(--muted); }
     </style>
   </head>
   <body>
     <main>
       <div id="stage"></div>
       <div>
+        <div class="controls">
+          <button id="session" type="button" title="reset() + markRest(), as the app does when the countdown ends">Start session</button>
+          <button id="turn" type="button" title="markTurn(): a new compressor sets their own baseline">Mark turn</button>
+        </div>
         <p id="error"></p>
+        <p id="fatigue">fatigue: –</p>
+        <p id="event">last compression: –</p>
         <pre id="state">starting…</pre>
       </div>
     </main>
     <script type="module">
       import { createEngine } from '/src/engine.js';
       const out = document.getElementById('state');
+      const fatigueEl = document.getElementById('fatigue');
+      const eventEl = document.getElementById('event');
       const engine = createEngine({
         stage: document.getElementById('stage'),
-        onState: (s) => (out.textContent = JSON.stringify(s, null, 2)),
-        onCompression: () => {},
+        onState: (s) => {
+          out.textContent = JSON.stringify(s, null, 2);
+          const f = s.fatigue ?? { slipping: false, signs: [] };
+          fatigueEl.textContent = f.slipping ? `slipping: ${f.signs.join(', ')}` : 'not slipping';
+          fatigueEl.style.color = f.slipping ? 'var(--bad)' : 'var(--good)';
+        },
+        onCompression: (e) => {
+          const ratio = e.travelRatio === null ? 'setting baseline…' : e.travelRatio.toFixed(2);
+          eventEl.textContent =
+            `last compression #${e.index}: travelRatio ${ratio} · elbow ${e.elbowAngleDeg.toFixed(0)}° · ` +
+            `lean ${e.armLeanDeg.toFixed(0)}° · recoil ${e.recoilRatio.toFixed(2)}`;
+        },
         onError: (e) => (document.getElementById('error').textContent = `${e.code}: ${e.message}`),
       });
       engine.setDebug(true); // frames-per-second counter in the stage corner
       engine.start();
+      document.getElementById('session').addEventListener('click', () => {
+        engine.reset();
+        engine.markRest();
+      });
+      document.getElementById('turn').addEventListener('click', () => engine.markTurn());
     </script>
   </body>
 </html>

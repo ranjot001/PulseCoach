@@ -185,6 +185,13 @@ export function createFormTracker(config) {
       restCaptureUntil = (lastT ?? 0) + REST_CAPTURE_MS;
     },
 
+    /** Forget the rest reference (a new person): recoil falls back to the rolling reference. */
+    dropRest() {
+      restRef = null;
+      restSamples = [];
+      restCaptureUntil = null;
+    },
+
     /** Clear cycles, recoil lookups and the live issues. The rest reference is kept. */
     reset() {
       cycleElbow = [];

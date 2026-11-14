@@ -21,6 +21,12 @@ export const config = {
   DEPTH_MAX_CM: 6,
   DEPTH_TOLERANCE_CM: 0.5,
   FEATURES: { depth: false },
+  // Fatigue (task A5): each compressor is compared with their own start.
+  FATIGUE_BASELINE_MS: 10000, // the first 10 s of compressions in a turn set the compressor's own baseline
+  FATIGUE_WINDOW: 6, // recent compressions compared with the baseline
+  FATIGUE_TRAVEL_DROP: 0.2, // pushes this much smaller than baseline: 'shallower'
+  FATIGUE_RATE_DROP_CPM: 8, // rate this much below baseline: 'slower'
+  FATIGUE_ELBOW_DROP: 0.3, // share of locked elbows this much below baseline: 'elbows'
 
   // ─── Track B · Coach and session ───────────────────────────────────────
   METRONOME_BPM: 110,

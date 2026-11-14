@@ -6,9 +6,9 @@ import { config } from '../src/config.js';
 const EVENT_FIELDS = [
   'index', 'tBottom', 'tTop', 'travel', 'intervalMs',
   'elbowAngleDeg', 'armLeanDeg', 'recoilRatio',
-  'elbowsLocked', 'aligned', 'fullRecoil', 'depthCm',
+  'elbowsLocked', 'aligned', 'fullRecoil', 'depthCm', 'travelRatio',
 ];
-const STATE_FIELDS = ['ready', 'personVisible', 'compressions', 'rate', 'rateZone', 'issues', 'setup'];
+const STATE_FIELDS = ['ready', 'personVisible', 'compressions', 'rate', 'rateZone', 'issues', 'fatigue', 'setup'];
 
 function fakeTimers() {
   vi.useFakeTimers();
@@ -201,5 +201,112 @@ describe('engine on the simulator (?sim=1)', () => {
     engine.setDebug(false);
     expect(chart.hidden).toBe(true);
     engine.stop();
+  });
+
+});
+
+describe('fatigue and turns (?sim=1)', () => {
+  // Engine with fake timers; returns helpers to run time and read what happened.
+  async function drill(search) {
+    const timers = fakeTimers();
+    const states = [];
+    const events = [];
+    const engine = createEngine({
+      stage: document.createElement('div'), search, timers,
+      onState: (s) => states.push({ ...s, at: Date.now() }),
+      onCompression: (e) => events.push({ ...e, at: Date.now() }),
+    });
+    await engine.start();
+    vi.advanceTimersByTime(3000); // countdown
+    engine.reset();
+    engine.markRest(); // the simulated compressor starts 1 s later
+    events.length = 0; // keep only the session, not the countdown
+    states.length = 0;
+    const turnStart = Date.now() + 1000;
+    return { engine, states, events, turnStart, advance: (ms) => vi.advanceTimersByTime(ms) };
+  }
+
+  it('fatigue=0 for 60 simulated seconds: never slipping', async () => {
+    const d = await drill('?sim=1&fatigue=0');
+    d.advance(61000);
+    d.engine.stop();
+    expect(d.events.length).toBeGreaterThan(100);
+    expect(d.states.every((s) => s.fatigue.slipping === false)).toBe(true);
+    expect(d.states.at(-1).fatigue).toEqual({ slipping: false, signs: [] });
+  });
+
+  it("fatigue=1: slipping by 40 s into the turn, with 'shallower' among the signs", async () => {
+    const d = await drill('?sim=1&fatigue=1');
+    d.advance(1000 + 40000);
+    d.engine.stop();
+    const first = d.states.find((s) => s.fatigue.slipping);
+    expect(first).toBeDefined();
+    expect(first.at - d.turnStart).toBeLessThanOrEqual(40000);
+    expect(first.at - d.turnStart).toBeGreaterThan(15000); // not before the compressor starts tiring
+    const last = d.states.at(-1);
+    expect(last.fatigue.slipping).toBe(true);
+    expect(last.fatigue.signs).toContain('shallower');
+  });
+
+  it('every event carries travelRatio: null during the baseline, then near 1, then falling with fatigue', async () => {
+    const d = await drill('?sim=1&fatigue=1');
+    d.advance(1000 + 40000);
+    d.engine.stop();
+    const into = (e) => e.at - d.turnStart;
+    expect(d.events.every((e) => 'travelRatio' in e)).toBe(true);
+    expect(d.events.filter((e) => into(e) < 9000).every((e) => e.travelRatio === null)).toBe(true);
+    const fresh = d.events.filter((e) => into(e) > 11000 && into(e) < 15000).map((e) => e.travelRatio);
+    expect(fresh.length).toBeGreaterThan(3);
+    for (const r of fresh) expect(r).toBeGreaterThan(0.85);
+    const tired = d.events.filter((e) => into(e) > 36000).map((e) => e.travelRatio);
+    for (const r of tired) expect(r).toBeLessThan(0.85);
+  });
+
+  it('after markTurn(): no compressions for about swap seconds, then counting resumes and slipping is false', async () => {
+    const d = await drill('?sim=1&fatigue=1&swap=5');
+    d.advance(1000 + 40000);
+    expect(d.states.at(-1).fatigue.slipping).toBe(true);
+    const countBefore = d.states.at(-1).compressions;
+    const turnAt = Date.now();
+    d.engine.markTurn();
+    d.advance(100);
+    expect(d.states.at(-1).fatigue).toEqual({ slipping: false, signs: [] });
+    expect(d.states.at(-1).compressions).toBe(countBefore); // not zeroed
+    d.advance(15000);
+    d.engine.stop();
+    const after = d.events.filter((e) => e.at > turnAt);
+    // a stroke already under way may finish just after the call; nothing else for ~swap s
+    const quiet = after.filter((e) => e.at > turnAt + 400 && e.at < turnAt + 5000);
+    expect(quiet).toHaveLength(0);
+    const resumed = after.filter((e) => e.at >= turnAt + 5000);
+    expect(resumed.length).toBeGreaterThan(15);
+    expect(resumed[0].at - turnAt).toBeLessThan(6000);
+    // indexes keep counting across the turn
+    const idx = d.events.map((e) => e.index);
+    expect(idx).toEqual(idx.map((_, i) => i));
+    expect(d.states.every((s) => s.at <= turnAt || !s.fatigue.slipping)).toBe(true);
+    expect(d.states.at(-1).compressions).toBeGreaterThan(countBefore);
+  });
+
+  it('markTurn() drops the rest reference: issues behave as in A4 for the new compressor', async () => {
+    const d = await drill('?sim=1&bend=30');
+    d.advance(8000);
+    expect(d.states.at(-1).issues.elbows).toBe(true);
+    d.engine.markTurn();
+    d.advance(100);
+    expect(d.states.at(-1).issues).toEqual({ elbows: false, position: false, recoil: false, depth: null });
+    d.advance(10000);
+    d.engine.stop();
+    expect(d.states.at(-1).issues).toEqual({ elbows: true, position: false, recoil: false, depth: null });
+  });
+
+  it('reset() also starts a fresh turn', async () => {
+    const d = await drill('?sim=1&fatigue=1');
+    d.advance(41000);
+    expect(d.states.at(-1).fatigue.slipping).toBe(true);
+    d.engine.reset();
+    d.advance(100);
+    d.engine.stop();
+    expect(d.states.at(-1).fatigue).toEqual({ slipping: false, signs: [] });
   });
 });
