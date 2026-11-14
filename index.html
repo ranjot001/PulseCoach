@@ -10,16 +10,22 @@
     <div class="app">
       <header class="topbar">
         <h1 id="title" class="brand">PulseCoach</h1>
+        <div id="timer" class="timer" hidden></div>
         <div class="controls">
           <span id="beat-dot" class="beat-dot" aria-hidden="true"></span>
           <button id="metronome-toggle" class="btn" type="button" aria-pressed="false">Metronome off</button>
           <button id="voice-toggle" class="btn" type="button" aria-pressed="false">Voice on</button>
         </div>
       </header>
-      <main class="practice">
+      <main id="screen-home" class="screen home"></main>
+      <main id="screen-session" class="screen practice" hidden>
         <div id="stage" class="stage-panel"></div>
         <div id="hud" class="hud"></div>
+        <div id="countdown" class="countdown" hidden>
+          <div id="countdown-number" class="countdown-number"></div>
+        </div>
       </main>
+      <main id="screen-results" class="screen results" hidden></main>
       <footer id="footer" class="footer"></footer>
     </div>
     <script type="module" src="/src/main.js"></script>

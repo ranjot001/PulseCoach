@@ -33,6 +33,12 @@ export const config = {
   PRAISE_REPEAT_MS: 10000, // at most one praise this often
   CUE_BANNER_MS: 3000, // how long a cue stays on screen
   SCORE_WEIGHTS: { rate: 40, elbows: 20, alignment: 20, recoil: 20, depth: 15 },
+  RATE_TREND_CPM: 6, // first vs last third must differ by this much to count as slowing/speeding
+  GRADE_BANDS: { lifesaver: 90, strong: 75, gettingThere: 50 }, // minimum score for each grade
+  RESULT_GOOD_PCT: 80, RESULT_WARN_PCT: 50, // colour of each breakdown bar
+  COUNTDOWN_SECONDS: 3,
+  LEADERBOARD_SIZE: 10,
+  NAME_MAX_CHARS: 12,
 
   // ─── Track C · Debrief and launch ──────────────────────────────────────
   DEBRIEF_TIMEOUT_MS: 6000,

@@ -48,6 +48,14 @@ export function createVoice({ rate = 1.05, volume = 1 } = {}) {
         // Speech failed; the banner still shows the cue.
       }
     },
+    /** Stop anything speaking or queued. */
+    cancel() {
+      try {
+        getSynth()?.synth.cancel();
+      } catch {
+        // ignore
+      }
+    },
     setMuted(on) {
       muted = Boolean(on);
       if (muted) {

@@ -44,3 +44,32 @@
 - Cues never overlap or stack up.
 - 30 s of mixed mistakes in the sim (e.g. `?sim=1&cpm=90&bend=30&recoil=0.5`) feels like coaching, not nagging. If it nags, raise `VOICE_COOLDOWN_MS`.
 - Then say "ship it".
+
+## B3: Session, score and leaderboard — done (2026-11-14)
+
+**Built**
+- Screen state machine in `src/main.js`: `home` → `countdown` → `practice` → `results` → (Try again / Space) `countdown`, no reloads. The engine starts on the first Start (so the camera prompt follows a click) and keeps running between sessions.
+- Countdown: 3, 2, 1 large over the practice screen and spoken (respects mute), then `engine.reset()`, `engine.markRest()`, coach reset, "Go".
+- Practice: B1 screen plus a big countdown timer in the top bar; metronome starts by itself, voice coaching on; every `onCompression` event collected. At `SESSION_SECONDS` the metronome and voice stop and results show.
+- `src/lib/score.js`: `summarise(events, durationSec, config)` returns exactly the Contract 2 fields. Rate in range is judged per compression on a rolling `RATE_WINDOW` rate (the engine's smoothing); intervals over `RATE_STALE_MS` (pauses) count as out of range and are left out of `avgRate`. Weighted score over components with data, depth band `DEPTH_MIN_CM − TOL` to `DEPTH_MAX_CM + TOL`, activity factor `min(1, n / (RATE_MIN·duration/60 / 2))`.
+- `src/ui/home.js`: name, tagline, instruction, side-on SVG diagram, leaderboard, Start (Space too).
+- `src/ui/results.js`: big score + grade, compressions and rate trend, a bar per component with its number, "Estimated depth" row only when measured, Track C's `renderDebriefCard`, name field + Save, leaderboard, Try again (Space too; Space is ignored while typing a name).
+- `src/ui/leaderboard.js`: top 10 by score in `localStorage` `pulsecoach.leaderboard.v1` as `{ name, score, avgRate, date }`; names trimmed to 12 chars, rendered with `textContent`; Reset asks for confirmation.
+- `src/audio/voice.js`: added `cancel()`.
+- Tests: `tests/score.test.js`, `tests/leaderboard.test.js`, `tests/results.test.js`, `tests/main.test.js` (whole loop on the real page with `?sim=1` and fake timers, including a `<b>` name shown as literal text and the debrief card present).
+
+**Config added (Track B section)**
+- `RATE_TREND_CPM: 6`: first vs last third must differ by this to be slowing/speeding (a 15/min slowdown gives ~10).
+- `GRADE_BANDS: { lifesaver: 90, strong: 75, gettingThere: 50 }`, from the task.
+- `RESULT_GOOD_PCT: 80`, `RESULT_WARN_PCT: 50`: colour of breakdown bars.
+- `COUNTDOWN_SECONDS: 3`, `LEADERBOARD_SIZE: 10`, `NAME_MAX_CHARS: 12`.
+
+**Note for tests**: Node 25's experimental global `localStorage` shadows jsdom's (it is `undefined` without a flag), so `tests/main.test.js` installs an in-memory one. The app itself falls back to no persistence if storage is missing.
+
+**Not verified in a real browser** by me (only Safari, no automation). The loop was verified in jsdom.
+
+**Human checks still to do**
+- One full session in the simulator, then one at the camera once Track A's detection is on `main`: score and breakdown match what happened.
+- `?sim=1&cpm=85&bend=30`: score drops, breakdown shows rate and elbows red.
+- Enter a name, reload: the entry is still on the leaderboard.
+- Then say "ship it".
