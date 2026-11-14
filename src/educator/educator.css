@@ -1,0 +1,184 @@
+/* Educator view. Design tokens from CLAUDE.md, with their values as fallbacks
+   until task B7 adds them to src/styles.css. Status colours only via --good/--warn/--bad. */
+
+.educator {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 20px 16px 32px;
+  color: var(--fg);
+  font-family: var(--font-ui, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
+}
+
+.educator .sample-banner {
+  margin: -20px -16px 18px;
+  padding: 12px 16px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+  color: var(--bg);
+  background: var(--warn);
+}
+
+.educator .top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-bottom: 18px;
+}
+.educator .brand { font-weight: 800; font-size: 20px; }
+.educator .title { margin: 0; font-size: 28px; flex: 1; }
+.educator .back { color: var(--accent, #5cc8ff); font-weight: 700; text-decoration: none; }
+.educator .back:hover, .educator .back:focus-visible { text-decoration: underline; }
+
+.educator .card {
+  background: var(--surface, #0e1520);
+  border: 1px solid var(--line, #24324a);
+  border-radius: var(--radius, 18px);
+  padding: 16px 20px;
+  min-width: 0;
+}
+
+.educator .label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.educator .tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.educator .big {
+  margin-top: 6px;
+  font-family: var(--font-num, ui-rounded, system-ui, sans-serif);
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.educator .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+
+.educator .good { color: var(--good); }
+.educator .warn { color: var(--warn); }
+.educator .bad { color: var(--bad); }
+
+.educator .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.educator .btn {
+  background: var(--surface-2, #162031);
+  color: var(--fg);
+  border: 1px solid var(--line, #24324a);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.educator .btn:hover, .educator .btn:focus-visible { border-color: var(--fg); }
+.educator .btn-primary { background: var(--good); color: var(--bg); border-color: var(--good); }
+
+.educator .drills { margin-bottom: 14px; }
+.educator .grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .educator .grid { grid-template-columns: 1fr; }
+}
+
+.educator .trend-chart { display: block; width: 100%; height: auto; margin-top: 8px; }
+.educator .trend-chart .grid { stroke: var(--line, #24324a); stroke-width: 1; }
+.educator .trend-chart .axis { fill: var(--muted); font-size: 11px; font-family: inherit; }
+.educator .trend-chart .target { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 5 5; }
+.educator .trend-chart .series { fill: none; stroke: var(--accent, #5cc8ff); stroke-width: 2.5; stroke-linejoin: round; }
+.educator .trend-chart .dot { stroke: var(--surface, #0e1520); stroke-width: 2; }
+.educator .trend-chart .dot.good { fill: var(--good); }
+.educator .trend-chart .dot.warn { fill: var(--warn); }
+.educator .trend-chart .dot.bad { fill: var(--bad); }
+
+.educator .table-wrap { overflow-x: auto; margin-top: 8px; }
+.educator .drill-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.educator .drill-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--line, #24324a);
+  white-space: nowrap;
+}
+.educator .drill-table td {
+  padding: 10px;
+  border-bottom: 1px solid var(--line, #24324a);
+  white-space: nowrap;
+}
+.educator .drill-table td.num {
+  font-family: var(--font-num, ui-rounded, system-ui, sans-serif);
+  font-weight: 800;
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+}
+.educator .drill-table td.team { font-weight: 700; white-space: normal; overflow-wrap: break-word; min-width: 8em; max-width: 18em; }
+.educator .drill-table td.when, .educator .drill-table td.slips { color: var(--muted); }
+.educator .drill-row { cursor: pointer; }
+.educator .drill-row:hover, .educator .drill-row:focus-visible { background: var(--surface-2, #162031); outline: none; }
+.educator .drill-row[aria-selected='true'] { background: var(--surface-2, #162031); box-shadow: inset 3px 0 0 var(--accent, #5cc8ff); }
+
+.educator .detail { display: grid; gap: 14px; }
+.educator .detail-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 12px; }
+.educator .detail-title { margin: 0; font-size: 24px; overflow-wrap: anywhere; }
+.educator .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin: 0; }
+.educator .fact dt { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.educator .fact dd { margin: 2px 0 0; font-family: var(--font-num, ui-rounded, system-ui, sans-serif); font-weight: 800; font-size: 20px; }
+.educator .turns { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.educator .turn { background: var(--surface-2, #162031); border-radius: 12px; padding: 10px 14px; }
+.educator .turn-name { font-weight: 800; font-size: 17px; }
+.educator .turn-meta { color: var(--muted); font-size: 14px; margin-top: 2px; }
+.educator .turn-slip { font-weight: 700; font-size: 15px; margin-top: 4px; }
+
+.educator .empty { text-align: center; padding: 40px 20px; display: grid; justify-items: center; gap: 10px; }
+.educator .empty-title { margin: 0; font-size: 28px; }
+.educator .empty-text { margin: 0 0 6px; color: var(--muted); max-width: 46ch; }
+
+.educator .foot {
+  margin-top: 22px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line, #24324a);
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* ─── Print: white page, dark text, no buttons ────────────────────────── */
+@media print {
+  html, body { background: #fff !important; color: #111 !important; }
+  .educator { max-width: none; padding: 0; color: #111; }
+  .educator .card, .educator .turn, .educator .debrief-card {
+    background: #fff !important;
+    border: 1px solid #999 !important;
+    color: #111 !important;
+    break-inside: avoid;
+  }
+  .educator .btn, .educator .actions, .educator .back, .educator .debrief-card__speak { display: none !important; }
+  .educator .sample-banner { background: #fff; color: #111; border: 2px solid #111; margin: 0 0 12px; }
+  .educator .label, .educator .sub, .educator .fact dt, .educator .turn-meta,
+  .educator .drill-table th, .educator .drill-table td.when, .educator .drill-table td.slips,
+  .educator .trend-chart .axis, .educator .foot, .educator .debrief-card__label { color: #333 !important; fill: #333; }
+  .educator .good, .educator .warn, .educator .bad, .educator .debrief-card__text { color: #111 !important; }
+  .educator .drill-row[aria-selected='true'] { background: none; box-shadow: none; }
+  .educator .grid { grid-template-columns: 1fr; }
+  .educator .drill-table td, .educator .drill-table th { border-color: #bbb; }
+  .educator .trend-chart .grid { stroke: #ccc; }
+  .educator .trend-chart .dot { stroke: #fff; }
+  .educator .foot { border-color: #999; font-size: 12pt; }
+}
