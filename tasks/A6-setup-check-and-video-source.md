@@ -1,4 +1,4 @@
-# A5: Setup check and video source
+# A6: Setup check and video source
 
 **Track:** A · Motion engine · **Branch:** `track-a` · **Time budget:** 25 min · **Priority:** Should-have
 **Needs on main:** A4
@@ -6,7 +6,7 @@
 ## Goal
 
 ```
-Complete tasks/A5-setup-check-and-video-source.md. Done means every item under "Done when" is verified with evidence, and npm test and npm run build both pass in the final output.
+Complete tasks/A6-setup-check-and-video-source.md. Done means every item under "Done when" is verified with evidence, and npm test and npm run build both pass in the final output.
 ```
 
 Read `CLAUDE.md` first. Work on branch `track-a` and touch only Track A files.
@@ -24,7 +24,7 @@ Two things that make the demo hard to get wrong: a check that the learner is fra
   - `ok` is true once all five have passed continuously for one second.
 - **`src/engine.js`.** `state.setup` now carries the real result. Track B's screen already reads it.
 - **Video file source.** `?video=<path>` plays a looping local video through the same pipeline as the camera. A video that cannot be loaded goes to `onError` with the code `no-camera`.
-- **Notes.** Add a few lines to `progress/track-a.md` on recording a clip into `public/demo.mp4`.
+- **Notes.** Add a few lines to `progress/track-a.md` on recording the backup clip into `public/demo.mp4`: one relay, side-on, with compressor 1 for about 30 seconds letting their form slip near the end, a switch, then compressor 2.
 
 ## Done when
 
@@ -42,7 +42,7 @@ Two things that make the demo hard to get wrong: a check that the learner is fra
 ## Human check
 
 - Kneel in position and watch the checklist on the home screen tick. Turn to face the camera: the side-on check fails with its hint.
-- Record a 40-second clip of good compressions, save it as `public/demo.mp4`, and open the app with `?video=/demo.mp4`. It counts and scores like the live camera.
+- Record the backup relay clip described in the notes, save it as `public/demo.mp4`, and open the app with `?video=/demo.mp4`. It counts like the live camera, and the slipping signal shows near the end of the first turn.
 - Then say "ship it".
 
 ## Out of scope

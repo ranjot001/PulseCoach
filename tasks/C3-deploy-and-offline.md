@@ -27,12 +27,12 @@ A public link for the submission, and a copy that runs from a laptop with no int
 - **Deployable build.** Confirm the Vite build and the `api/debrief.js` function work together on Vercel. Add a `vercel.json` only if it is needed.
 - **Offline run.** `npm run build` then `npm run preview` must serve a working app with the network off. The model file, the wasm files and every other asset come from the build output. The preview server has no `/api/debrief`, so the debrief card stays on quick tips, which is the intended behaviour.
 - **`README.md`.** Short and practical:
-  - What PulseCoach is, in two sentences, including that it is a practice aid for adult hands-only CPR.
+  - What PulseCoach is, in two sentences: a two-person relay drill for adult hands-only CPR that calls the switch when compressions slip, with a solo mode. Say it is a practice aid.
   - Run locally, with and without the AI debrief.
   - How the public link is updated.
   - Environment variables.
   - Keyboard shortcuts.
-  - The three ways to run a demo: camera, `?video=/demo.mp4`, `?sim=1`.
+  - The three ways to run a demo: camera, `?video=/demo.mp4`, `?sim=1`, plus `&fatigue=1` to make the simulated compressor slip and `?turnSeconds=` to shorten turns.
   - The team's three tracks, one line each.
 
 ## Done when
