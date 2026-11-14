@@ -29,6 +29,8 @@ export const config = {
 
   // ─── Track C · Debrief and launch ──────────────────────────────────────
   DEBRIEF_TIMEOUT_MS: 6000,
+  DEBRIEF_STRONG_PCT: 90, // every component at or above this: "all strong", suggest a longer session
+  DEBRIEF_WEAK_PCT: 75, // a second-weakest component below this also gets a tip
 };
 
 export default config;
