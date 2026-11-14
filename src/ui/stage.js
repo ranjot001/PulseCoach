@@ -2,6 +2,8 @@
 import './stage.css';
 import { drawPose } from './overlay.js';
 import { createChart } from './chart.js';
+import { createPushBars } from './pushBars.js';
+import { config } from '../config.js';
 
 /**
  * @param {HTMLElement} container
@@ -29,13 +31,12 @@ export function createStage(container, { simulated = false, mirror = !simulated 
   const chartCanvas = document.createElement('canvas');
   chartCanvas.className = 'pc-stage__chart';
   chartCanvas.hidden = true;
-  root.append(layer, chartCanvas, debug);
-  if (simulated) {
-    const badge = document.createElement('div');
-    badge.className = 'pc-stage__badge';
-    badge.textContent = 'SIMULATED';
-    root.append(badge);
-  }
+  root.append(layer, chartCanvas);
+  const pushBars = createPushBars(root, config); // always visible, debug or not
+  const badge = document.createElement('div');
+  badge.className = simulated ? 'pc-stage__badge pc-stage__badge--sim' : 'pc-stage__badge';
+  badge.textContent = simulated ? 'SIMULATED' : 'LIVE';
+  root.append(badge, debug);
   container.replaceChildren(root);
 
   const chart = createChart(chartCanvas);
@@ -75,6 +76,8 @@ export function createStage(container, { simulated = false, mirror = !simulated 
     setDebugText(text) {
       debug.textContent = text;
     },
+    /** The push-size strip: push(event), clear(), setLabel(text, tone). */
+    pushBars,
     destroy() {
       root.remove();
     },

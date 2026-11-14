@@ -34,7 +34,7 @@ export function drawPose(ctx, landmarks, width, height, minVisibility, status = 
   const seen = (i) => (landmarks[i]?.visibility ?? 0) >= minVisibility;
   const px = (i) => toPixels(landmarks[i], width, height);
 
-  const white = 'rgba(255, 255, 255, 0.9)';
+  const accent = cssColor('--accent', '#5cc8ff');
   const bad = cssColor('--bad', '#ff4d5e');
   ctx.lineCap = 'round';
   ctx.lineWidth = 10 * scale;
@@ -43,7 +43,7 @@ export function drawPose(ctx, landmarks, width, height, minVisibility, status = 
     const p = px(a);
     const q = px(b);
     const isArm = ARM_BONES.has(`${a}-${b}`);
-    ctx.strokeStyle = status.elbowsBad && isArm ? bad : white;
+    ctx.strokeStyle = status.elbowsBad && isArm ? bad : accent;
     ctx.lineWidth = (status.elbowsBad && isArm ? 14 : 10) * scale;
     ctx.beginPath();
     ctx.moveTo(p.x, p.y);
@@ -51,8 +51,7 @@ export function drawPose(ctx, landmarks, width, height, minVisibility, status = 
     ctx.stroke();
   }
 
-  const good = cssColor('--good', '#2fd27a');
-  ctx.fillStyle = good;
+  ctx.fillStyle = cssColor('--fg', '#f2f6fa'); // light joints, as in the design
   ctx.strokeStyle = '#000';
   ctx.lineWidth = 3 * scale;
   for (const i of JOINTS) {

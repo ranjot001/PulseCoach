@@ -34,6 +34,7 @@ export const config = {
   SETUP_TORSO_MAX: 0.45, // further than this → "Move back a little"
   SETUP_MARGIN: 0.02, // upper body must be this far inside the frame edges (share of frame)
   SETUP_HOLD_MS: 1000, // all checks pass continuously this long before setup is ok
+  PUSH_BARS: 40, // compressions shown in the push-size strip (task A7)
 
   // ─── Track B · Coach and session ───────────────────────────────────────
   METRONOME_BPM: 110,

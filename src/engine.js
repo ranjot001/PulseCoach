@@ -19,6 +19,18 @@ const STATE_INTERVAL_MS = 100;
 const FRAME_STALE_MS = 1000; // no frame for this long → not ready
 const SETUP_FRAMES_MS = 1500; // recent frames kept for the setup check
 
+// The push-size strip's label for the fatigue signs, in plain words.
+const SIGN_WORDS = { shallower: 'Smaller pushes', slower: 'Slower', elbows: 'Elbows bending' };
+
+/** Label for the push-size strip: setting the baseline, nothing, or the slipping signs. */
+export function pushBarsLabel(fatigueState, baselineSet) {
+  if (fatigueState?.slipping) {
+    return { text: fatigueState.signs.map((s) => SIGN_WORDS[s] ?? s).join(' · '), tone: 'warn' };
+  }
+  if (!baselineSet) return { text: 'Setting your baseline', tone: 'muted' };
+  return { text: '', tone: null };
+}
+
 const defaultTimers = {
   setInterval: (fn, ms) => globalThis.setInterval(fn, ms),
   clearInterval: (id) => globalThis.clearInterval(id),
@@ -143,6 +155,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
     if (!partial) return;
     const event = { ...partial, ...form.complete(partial), depthCm: null };
     event.travelRatio = fatigue.push(event);
+    view?.pushBars.push(event);
     rate.onCompression(event);
     compressions += 1;
     safeCall(onCompression, event);
@@ -166,6 +179,10 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
 
   function emitState() {
     const state = snapshot();
+    if (view) {
+      const label = pushBarsLabel(state.fatigue, fatigue.getBaseline() !== null);
+      view.pushBars.setLabel(label.text, label.tone);
+    }
     if (debug && view) {
       view.setDebugText(
         `${fps.toFixed(0)} fps · ${state.compressions} compressions · rate ${state.rate ?? '–'}` +
@@ -261,6 +278,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
       rate.reset();
       form.reset();
       fatigue.startTurn();
+      view?.pushBars.clear();
       compressions = 0;
     },
     markRest() {
@@ -281,6 +299,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
      */
     markTurn() {
       fatigue.startTurn();
+      view?.pushBars.clear();
       form.reset();
       form.dropRest();
       // Simulator: the figure stops for `swap` seconds, then a fresh compressor starts

@@ -82,3 +82,13 @@
 - Try it with `?video=/demo.mp4`: it should count like the live camera and show slipping near the end of the first turn. Track B's drill calls `markTurn()` at the switch.
 
 - Human checks still to do: kneel in position and watch the home checklist tick; turn to face the camera → side-on fails with its hint. Record the clip above and run `?video=/demo.mp4`.
+
+## A7 Push-size bars and stage polish (on `track-a`)
+
+- Built: `src/ui/pushBars.js`: `barView(travelRatio, config)` → `{ heightPct, tone }` (ratio 1 at 70%, capped at 100%; `'base'` while null, `'low'` at or below `1 − FATIGUE_TRAVEL_DROP`, else `'ok'`), and `createPushBars(container, config)` with `push(event)`, `clear()`, `setLabel(text, tone)`. Keeps the last `PUSH_BARS`, newest on the right, dashed "your start" line at 70%. While the baseline is set, bars are grey and sized by raw travel against the largest so far.
+- Stage (`stage.js`, `stage.css`, `overlay.js`), matched to `tasks/design/relay-mock.png` screen 2: rounded corners and hairline border from the design tokens (with the CLAUDE.md fallbacks), a "LIVE" pill (red dot) or "SIMULATED" (amber dot) top left, debug text moved top right and the debug chart moved above the strip. Skeleton bones in `--accent`, joints in `--fg`; arms stay `--bad` while the elbows check fails. The strip sits over the bottom of the picture on a dark fade and is always visible, debug or not. Bar colours come from `--muted`, `--good`, `--warn` in CSS.
+- `src/engine.js`: every compression goes into the strip; `reset()` and `markTurn()` clear it. Label from the fatigue state: "Setting your baseline" (muted) while the baseline is set, then nothing, then the signs in `--warn`: "Smaller pushes", "Slower", "Elbows bending" joined with " · ". Exported `pushBarsLabel()` for tests. Interface unchanged.
+- Config: `PUSH_BARS: 40` added to the Track A section (value from CLAUDE.md).
+- Not checked in a browser: no browser was available to me. Engine cost is unchanged (36 simulated seconds: about 50 ms of engine work, was 41 ms).
+- **For Track B:** `tests/main.test.js` runs a whole 36-simulated-second session inside the default 5 s test timeout. It takes about 0.3 s alone and 1.8–2.8 s in the full suite, but on a busy laptop (Chrome running the live app at 220% CPU, load average 12–23) it timed out 2 times in 7 full runs. Suggest giving that one test a longer timeout, e.g. `it('runs Start → …', async () => { … }, 20000)`.
+- Human checks still to do: start a drill with the camera; bars grey for 10 s, then green; smaller pushes → amber bars below the dashed line. From 3 m: green and amber bars are distinguishable and the shrinking is visible.
