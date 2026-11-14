@@ -4,6 +4,8 @@
 export const config = {
   // ─── Track A · Motion engine ───────────────────────────────────────────
   BASELINE_WINDOW_MS: 1000, // detrending window
+  SMOOTH_WINDOW_MS: 100, // short moving average that removes landmark jitter
+  TORSO_WINDOW_MS: 1000, // rolling median window for a steady torso length
   MIN_TRAVEL: 0.03, // torso units; smaller movements are not compressions
   MIN_INTERVAL_MS: 250, // two compressions cannot be closer than this
   RATE_MIN: 100,
@@ -19,6 +21,20 @@ export const config = {
   DEPTH_MAX_CM: 6,
   DEPTH_TOLERANCE_CM: 0.5,
   FEATURES: { depth: false },
+  // Fatigue (task A5): each compressor is compared with their own start.
+  FATIGUE_BASELINE_MS: 10000, // the first 10 s of compressions in a turn set the compressor's own baseline
+  FATIGUE_WINDOW: 6, // recent compressions compared with the baseline
+  FATIGUE_TRAVEL_DROP: 0.2, // pushes this much smaller than baseline: 'shallower'
+  FATIGUE_RATE_DROP_CPM: 8, // rate this much below baseline: 'slower'
+  FATIGUE_ELBOW_DROP: 0.3, // share of locked elbows this much below baseline: 'elbows'
+  // Setup check (task A6)
+  SETUP_MIN_VISIBILITY: 0.6, // near arm and a hip must be at least this visible
+  SETUP_SIDE_ON_MAX: 0.45, // shoulder gap ÷ torso length below this counts as side-on
+  SETUP_TORSO_MIN: 0.15, // torso length ÷ frame height: closer than this → "Move a little closer"
+  SETUP_TORSO_MAX: 0.45, // further than this → "Move back a little"
+  SETUP_MARGIN: 0.02, // upper body must be this far inside the frame edges (share of frame)
+  SETUP_HOLD_MS: 1000, // all checks pass continuously this long before setup is ok
+  PUSH_BARS: 40, // compressions shown in the push-size strip (task A7)
 
   // ─── Track B · Coach and session ───────────────────────────────────────
   METRONOME_BPM: 110,

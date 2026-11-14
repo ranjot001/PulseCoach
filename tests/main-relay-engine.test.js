@@ -36,6 +36,7 @@ async function load(search) {
   fake.markTurn = 0;
   fake.slipping = false;
   await import('../src/main.js');
+  await vi.advanceTimersByTimeAsync(1500); // A6: let the setup check see a second of good frames
   document.querySelector('#screen-home .btn-primary').click();
   await vi.advanceTimersByTimeAsync(3000);
 }
@@ -46,7 +47,8 @@ afterEach(() => vi.useRealTimers());
 describe('relay with an engine that has markTurn and fatigue', () => {
   it('calls markTurn once at the single rhythm check of a two-turn drill', async () => {
     await load('/?sim=1&turnSeconds=20');
-    await vi.advanceTimersByTimeAsync(21000);
+    // The real engine's first compression lands about 1.3 s after Go, so turn 1 ends at about 21.3 s.
+    await vi.advanceTimersByTimeAsync(22000);
     expect(visible('switch')).toBe(true);
     expect(fake.markTurn).toBe(1);
     await vi.advanceTimersByTimeAsync(25000);
