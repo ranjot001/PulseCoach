@@ -2,11 +2,11 @@
 import './styles.css';
 import { createEngine } from './engine.js';
 import { config } from './config.js';
-import { PRODUCT_NAME, FOOTER_LINE, PRACTICE, SESSION, RELAY } from './copy.js';
-import { createHud, createSwitchOverlay } from './ui/hud.js';
+import { PRODUCT_NAME, FOOTER_LINE, PRACTICE, SESSION, RELAY, RELAY_RESULTS } from './copy.js';
+import { createHud, createSwitchOverlay, setTitle, setTurnTitle } from './ui/hud.js';
 import { renderHome, renderError, shortcutAction, simulatorUrl } from './ui/home.js';
 import { renderResults } from './ui/results.js';
-import { renderRelayResults } from './ui/relayResults.js';
+import { renderRelayResults, clockTime } from './ui/relayResults.js';
 import { createLeaderboard, renderLeaderboard } from './ui/leaderboard.js';
 import { createMetronome } from './audio/metronome.js';
 import { createVoice } from './audio/voice.js';
@@ -150,7 +150,7 @@ function show(name) {
   screens.error.hidden = name !== 'error';
   countdownEl.hidden = name !== 'countdown';
   timerEl.hidden = name !== 'countdown' && name !== 'practice';
-  relayLabel.hidden = mode !== 'relay' || (name !== 'countdown' && name !== 'practice');
+  relayLabel.hidden = mode !== 'relay' || (name !== 'countdown' && name !== 'practice' && name !== 'results');
   if (name !== 'practice') switchOverlay.hide();
   document.body.dataset.screen = name;
 }
@@ -208,7 +208,7 @@ function startCountdown(nextMode = mode) {
   hud.setCue('');
   if (mode === 'relay') {
     const opts = drillOptions(globalThis.location?.search, config);
-    relayLabel.textContent = RELAY.turnLabel(1, 1, opts.turns);
+    setTurnTitle(relayLabel, 1, 1, opts.turns);
     renderTimer(opts.turnSeconds);
   } else {
     renderTimer(config.SESSION_SECONDS);
@@ -261,7 +261,7 @@ function startRelay() {
 
 function renderRelay() {
   const view = relay.getView(clock());
-  relayLabel.textContent = RELAY.turnLabel(view.compressor, view.turn, view.turns);
+  setTurnTitle(relayLabel, view.compressor, view.turn, view.turns);
   renderTimer(view.turnSecondsLeft);
   switchOverlay.update(view);
 }
@@ -314,6 +314,8 @@ function showRelayResults() {
   const drill = relay.getDrill();
   const stats = summariseRelay(drill, config);
   const avgRate = stats.compressions ? Math.round(stats.turns.reduce((a, t) => a + t.avgRate * t.compressions, 0) / stats.compressions) : 0;
+  const [doneMain, ...doneSub] = RELAY_RESULTS.drillComplete(stats.turns.length, clockTime(stats.durationSec)).split(' · ');
+  setTitle(relayLabel, doneMain, doneSub.join(' · '));
   show('results');
   screens.results.classList.add('relay-results');
   const { leaderboardSlot } = renderRelayResults(screens.results, stats, {

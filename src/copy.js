@@ -10,6 +10,7 @@ export const PRACTICE = {
   rateGood: 'Good pace',
   rateFast: 'Slow down',
   rateTarget: 'Target 100–120',
+  rateSub: 'per min · target 100–120',
   counterHeading: 'Compressions',
   chipElbows: 'Elbows',
   chipPosition: 'Position',
@@ -20,13 +21,13 @@ export const PRACTICE = {
   depthDeep: 'deep',
   statusLoading: 'Loading',
   statusNoPerson: 'No person in view',
-  metronomeOn: 'Metronome on',
-  metronomeOff: 'Metronome off',
+  metronomeOn: 'Beat on · B',
+  metronomeOff: 'Beat off · B',
   metronomeHint: 'Press B',
   voiceHint: 'Press M',
   errorPrefix: 'Camera problem',
-  voiceOn: 'Voice on',
-  voiceMuted: 'Voice muted',
+  voiceOn: 'Voice on · M',
+  voiceMuted: 'Voice off · M',
 };
 
 // Spoken coaching cues, keyed by the ids src/lib/feedback.js returns.
@@ -50,6 +51,22 @@ export const GRADES = {
 };
 
 export const HOME = {
+  eyebrow: 'Team CPR drill · adult hands-only',
+  headline: ['CPR is a relay,', 'not a sprint.'],
+  lede: 'Two people, one pillow, one laptop camera. PulseCoach spots when compressions start to slip, calls the switch and times every pause.',
+  facts: [
+    { value: '7 min', text: 'median wait for help after a 911 call' },
+    { value: '~1 min', text: 'until compression quality starts to drop, in manikin studies' },
+    { value: '80%', text: 'of the time, compressions should be happening' },
+  ],
+  factSources: 'Mell et al. 2017 · Hightower et al. 1995 · AHA',
+  steps: [
+    { title: 'Compress.', text: 'The camera learns your own level in the first 10 seconds.' },
+    { title: 'Switch.', text: 'On the clock, or sooner if you start to slip. Keep the pause under 10 seconds.' },
+    { title: 'Debrief.', text: 'A team score and a line for each compressor.' },
+  ],
+  boardHeading: 'Team board',
+  spaceKey: 'Space',
   tagline: 'Practice for adult hands-only CPR',
   instruction: 'Kneel side-on to the camera over a firm pillow, with your whole upper body in view.',
   start: 'Start',
@@ -84,14 +101,14 @@ export const RESULTS = {
 };
 
 export const LEADERBOARD = {
-  heading: 'Leaderboard',
+  heading: 'Team board',
   empty: 'No scores yet. Be the first.',
   reset: 'Reset',
   confirmReset: 'Clear every score on the leaderboard?',
   anonymous: 'Anonymous',
   perMin: '/min',
   relayTag: 'Relay',
-  ccf: (pct) => `CCF ${pct}%`,
+  ccf: (pct) => `${pct}% on chest`,
 };
 
 export const RELAY = {
@@ -105,6 +122,13 @@ export const RELAY = {
   startSolo: 'Solo practice · 30 s',
   turnLabel: (compressor, turn, turns) => `Compressor ${compressor} · Turn ${turn} of ${turns}`,
   rhythmHandsOff: 'Rhythm check: hands off',
+  handsOffHeading: 'Hands-off time',
+  pauseNumber: (sec) => sec.toFixed(1),
+  pauseUnit: 's',
+  pauseMarks: (warn, max, end) => ['0', `${warn} s`, `${max} s · limit`, String(end)],
+  switchLead: 'Switch! ',
+  switchWho: (compressor) => `Compressor ${compressor}`,
+  switchTail: ', start now',
   switchNow: (compressor) => `Switch! Compressor ${compressor}, start now`,
   pauseValue: (sec) => `${sec.toFixed(1)}s`,
   slipping: 'Slipping',
@@ -113,21 +137,28 @@ export const RELAY = {
 
 export const RELAY_RESULTS = {
   teamScore: 'Team score',
-  ccfHeading: 'Compression fraction',
-  ccfHint: (target) => `Hands on the chest · target ${target}%`,
+  drillComplete: (turns, time) => `Drill complete · ${turns} turns · ${time}`,
+  ccfHeading: 'On the chest',
+  ccfHint: (target) => `target ${target}%`,
   ccfValue: (pct) => `${pct}%`,
   switchesHeading: 'Switches',
   switchLabel: (n) => `Switch ${n}`,
   switchAverage: 'Average switch',
   noSwitches: 'No switches',
   pauseValue: (sec) => `${sec.toFixed(1)} s`,
+  pauseNumber: (sec) => sec.toFixed(1),
+  pauseUnit: ' s',
+  switchNote: (max) => `Limit ${max} s.`,
+  earlyNote: (max) => `Called early, when the compressor started slipping. Limit ${max} s.`,
   earlyTag: 'early switch',
   longestPause: (sec) => `Longest pause ${sec.toFixed(1)} s`,
   compressor: (n) => `Compressor ${n}`,
-  turnStats: (compressions, rate) => `${compressions} compressions · avg ${rate}/min`,
+  turnStats: (compressions, rate, time) => `${compressions} compressions · ${rate} / min · ${time}`,
   turnScore: (score) => `Score ${score}`,
   slippedAt: (time, signs) => (signs ? `Started slipping at ${time}: ${signs}` : `Started slipping at ${time}`),
   heldForm: 'Held form for the whole turn',
+  saveHeading: 'Save to the team board',
+  runAgain: 'Run it again · Space',
   teamNameLabel: 'Team name for the leaderboard',
   teamNamePlaceholder: 'Team name',
 };
@@ -144,7 +175,7 @@ export const SETUP = {
     'in-frame': 'Centred in the picture',
   },
   pass: '✓',
-  fail: '✗',
+  fail: '!',
 };
 
 export const SHORTCUT_LEGEND = {

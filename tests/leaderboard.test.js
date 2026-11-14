@@ -86,7 +86,7 @@ describe('leaderboard modes', () => {
     const [relay, old] = root.querySelectorAll('li');
     expect(relay.dataset.mode).toBe('relay');
     expect(relay.querySelector('.lb-tag').textContent).toBe('Relay');
-    expect(relay.querySelector('.lb-rate').textContent).toBe('CCF 92%');
+    expect(relay.querySelector('.lb-rate').textContent).toBe('92% on chest');
     expect(old.dataset.mode).toBe('solo');
     expect(old.querySelector('.lb-tag').textContent).toBe('');
     expect(old.querySelector('.lb-rate').textContent).toBe('105/min');

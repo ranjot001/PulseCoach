@@ -88,25 +88,103 @@ export function switchMessage(view) {
 }
 
 /**
- * Full-width switch overlay with a huge pause timer.
+ * A title in two parts, as in the top bar: "Compressor 1" large, "Turn 1 of 2" smaller.
+ * The text reads as one line ("Compressor 1 · Turn 1 of 2") for screen readers and tests.
+ */
+export function setTitle(node, main, sub = '') {
+  const parts = [el('span', 'title-main', main)];
+  if (sub) parts.push(el('span', 'title-sep', ' · '), el('span', 'title-sub', sub));
+  node.replaceChildren(...parts);
+}
+
+/** "Compressor 1 · Turn 1 of 2" in the top bar. */
+export function setTurnTitle(node, compressor, turn, turns) {
+  const [main, sub] = RELAY.turnLabel(compressor, turn, turns).split(' · ');
+  setTitle(node, main, sub);
+}
+
+/** Width of the pause bar: the scale runs to two seconds past PAUSE_MAX_SEC. */
+export function pauseScaleEnd(cfg = config) {
+  return cfg.PAUSE_MAX_SEC + 2;
+}
+
+/**
+ * Full-width switch overlay: "Hands-off time", a huge pause timer, a bar with the
+ * PAUSE_WARN_SEC and PAUSE_MAX_SEC ticks, then the instruction.
  * @returns {{ update(view): void, hide(): void }}
  */
 export function createSwitchOverlay(root, cfg = config) {
-  const timer = el('div', 'switch-timer status-good', RELAY.pauseValue(0));
+  const end = pauseScaleEnd(cfg);
+  const inner = el('div', 'switch-inner');
+  const label = el('div', 'label switch-label', RELAY.handsOffHeading);
+  const timer = el('div', 'switch-timer num status-good');
+  const timerValue = document.createTextNode(RELAY.pauseNumber(0));
+  timer.append(timerValue, el('small', 'switch-unit', RELAY.pauseUnit));
+  const pause = el('div', 'switch-pause status-good');
+  const track = el('div', 'meter switch-track');
+  const fill = el('i', 'meter-fill');
+  fill.style.width = '0%';
+  track.append(fill);
+  for (const sec of [cfg.PAUSE_WARN_SEC, cfg.PAUSE_MAX_SEC]) {
+    const tick = el('span', 'meter-tick');
+    tick.style.left = `${(sec / end) * 100}%`;
+    track.append(tick);
+  }
+  const marks = el('div', 'switch-marks');
+  for (const [i, text] of RELAY.pauseMarks(cfg.PAUSE_WARN_SEC, cfg.PAUSE_MAX_SEC, end).entries()) {
+    const m = el('span', '', text);
+    if (i === 1 || i === 2) m.style.left = `${((i === 1 ? cfg.PAUSE_WARN_SEC : cfg.PAUSE_MAX_SEC) / end) * 100}%`;
+    m.className = i === 0 ? 'mark-start' : i === 3 ? 'mark-end' : 'mark-tick';
+    marks.append(m);
+  }
+  pause.append(track, marks);
   const message = el('div', 'switch-text', '');
-  root.replaceChildren(timer, message);
+  inner.append(label, timer, pause, message);
+  root.replaceChildren(inner);
   root.hidden = true;
+  let lastStatus = 'good';
+  let lastMessage = null;
+
   return {
     update(view) {
       const switching = view.phase === 'rhythmCheck' || view.phase === 'resume';
       root.hidden = !switching;
-      if (!switching) return;
-      timer.textContent = RELAY.pauseValue(view.pauseSec);
-      for (const s of ['good', 'warn', 'bad']) timer.classList.toggle(`status-${s}`, s === pauseStatus(view.pauseSec, cfg));
-      message.textContent = switchMessage(view);
+      document.body?.classList.toggle('is-switching', switching);
+      if (!switching) {
+        lastStatus = 'good';
+        return;
+      }
+      const status = pauseStatus(view.pauseSec, cfg);
+      timerValue.textContent = RELAY.pauseNumber(view.pauseSec);
+      for (const s of ['good', 'warn', 'bad']) {
+        timer.classList.toggle(`status-${s}`, s === status);
+        pause.classList.toggle(`status-${s}`, s === status);
+      }
+      // Pulse once as the pause turns red.
+      if (status === 'bad' && lastStatus !== 'bad') {
+        timer.classList.remove('pulse-once');
+        void timer.offsetWidth;
+        timer.classList.add('pulse-once');
+      }
+      lastStatus = status;
+      fill.style.width = `${Math.min(100, (view.pauseSec / end) * 100)}%`;
+      const key = `${view.phase}:${view.compressor}`;
+      if (key !== lastMessage) {
+        lastMessage = key;
+        if (view.phase === 'resume') {
+          message.replaceChildren(
+            document.createTextNode(RELAY.switchLead),
+            el('span', 'switch-who', RELAY.switchWho(view.compressor)),
+            document.createTextNode(RELAY.switchTail),
+          );
+        } else {
+          message.textContent = switchMessage(view);
+        }
+      }
     },
     hide() {
       root.hidden = true;
+      document.body?.classList.remove('is-switching');
     },
   };
 }
@@ -125,15 +203,16 @@ function el(tag, className, text) {
  * @returns {{ update(state): void, compression(event): void, setCue(text: string): void, setError(text: string): void }}
  */
 export function createHud(root, cfg = config) {
-  const rateCard = el('section', 'hud-rate status-none');
-  const rateHeading = el('div', 'hud-heading', PRACTICE.rateHeading);
+  const rateCard = el('section', 'card hud-rate status-none');
+  const rateHeading = el('div', 'label hud-heading', PRACTICE.rateHeading);
   const rateRow = el('div', 'hud-rate-row');
-  const rateNumber = el('div', 'hud-rate-number', PRACTICE.rateEmpty);
-  const rateUnit = el('div', 'hud-rate-unit', PRACTICE.rateUnit);
-  rateRow.append(rateNumber, rateUnit);
+  const rateNumber = el('div', 'num hud-rate-number', PRACTICE.rateEmpty);
+  const rateSay = el('div', 'hud-rate-say');
   const rateLabel = el('div', 'hud-rate-label', '');
+  rateSay.append(rateLabel, el('div', 'hud-rate-unit', PRACTICE.rateSub));
+  rateRow.append(rateNumber, rateSay);
 
-  const gauge = el('div', 'hud-gauge');
+  const gauge = el('div', 'meter hud-gauge');
   const band = el('div', 'hud-gauge-band');
   const bandLeft = gaugePercent(cfg.RATE_MIN, cfg);
   band.style.left = `${bandLeft}%`;
@@ -141,13 +220,15 @@ export function createHud(root, cfg = config) {
   const marker = el('div', 'hud-gauge-marker');
   marker.hidden = true;
   gauge.append(band, marker);
-  const gaugeCaption = el('div', 'hud-gauge-caption', PRACTICE.rateTarget);
-  rateCard.append(rateHeading, rateRow, rateLabel, gauge, gaugeCaption);
+  rateCard.append(rateHeading, rateRow, gauge);
 
-  const counterCard = el('section', 'hud-counter');
-  const counterHeading = el('div', 'hud-heading', PRACTICE.counterHeading);
-  const counterNumber = el('div', 'hud-counter-number', '0');
+  // The second slot of this row is for the live "On the chest" card (task B9).
+  const duo = el('div', 'hud-duo');
+  const counterCard = el('section', 'card hud-counter');
+  const counterHeading = el('div', 'label hud-heading', PRACTICE.counterHeading);
+  const counterNumber = el('div', 'num hud-counter-number', '0');
   counterCard.append(counterHeading, counterNumber);
+  duo.append(counterCard);
 
   const chips = el('section', 'hud-chips');
   const chipNodes = {};
@@ -170,7 +251,7 @@ export function createHud(root, cfg = config) {
   cue.setAttribute('aria-live', 'polite');
   const status = el('div', 'hud-status', PRACTICE.statusLoading);
 
-  root.replaceChildren(rateCard, counterCard, chips, cue, status);
+  root.replaceChildren(rateCard, duo, chips, status, cue);
 
   let lastDepthCm = null;
   let lastDepthIssue = null;

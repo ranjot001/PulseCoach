@@ -65,14 +65,6 @@ export function simulatorUrl(href) {
 
 // ─── DOM ──────────────────────────────────────────────────────────────────
 
-const SVG_NS = 'http://www.w3.org/2000/svg'; // XML namespace identifier, not a network request
-
-function svgEl(tag, attrs) {
-  const node = document.createElementNS(SVG_NS, tag);
-  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, String(v));
-  return node;
-}
-
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -80,26 +72,9 @@ function el(tag, className, text) {
   return node;
 }
 
-/** Side view: a laptop camera on the left, a person kneeling over a pillow, arms straight. */
-function positionDiagram() {
-  const svg = svgEl('svg', { viewBox: '0 0 320 180', class: 'home-diagram', role: 'img', 'aria-label': HOME.diagramLabel });
-  const line = { stroke: 'currentColor', 'stroke-width': 6, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' };
-  svg.append(svgEl('line', { x1: 10, y1: 165, x2: 310, y2: 165, stroke: 'var(--muted)', 'stroke-width': 3 }));
-  svg.append(svgEl('rect', { x: 18, y: 112, width: 8, height: 52, fill: 'var(--muted)' }));
-  svg.append(svgEl('rect', { x: 14, y: 160, width: 50, height: 5, fill: 'var(--muted)' }));
-  svg.append(svgEl('circle', { cx: 26, cy: 118, r: 4, fill: 'var(--good)' }));
-  svg.append(svgEl('path', { d: 'M30 118 L300 40 L300 165 Z', fill: 'var(--good)', opacity: 0.08 }));
-  svg.append(svgEl('rect', { x: 150, y: 150, width: 60, height: 14, rx: 6, fill: 'var(--muted)' }));
-  svg.append(svgEl('circle', { cx: 196, cy: 52, r: 14, ...line }));
-  svg.append(svgEl('path', { d: 'M196 68 L250 100', ...line }));
-  svg.append(svgEl('path', { d: 'M190 74 L182 148', ...line }));
-  svg.append(svgEl('path', { d: 'M250 100 L262 160 L300 162', ...line }));
-  return svg;
-}
-
 function shortcutLegend() {
   const wrap = el('section', 'shortcuts');
-  wrap.append(el('h2', 'shortcuts-heading', SHORTCUT_LEGEND.heading));
+  wrap.append(el('h2', 'label shortcuts-heading', SHORTCUT_LEGEND.heading));
   const dl = el('dl', 'shortcuts-list');
   for (const s of SHORTCUTS) {
     const row = el('div', 'shortcut');
@@ -111,27 +86,26 @@ function shortcutLegend() {
 }
 
 /**
+ * Home: the pitch on the left (headline, starts, fact tiles, three steps), the setup
+ * checklist and the team board on the right.
  * @param {HTMLElement} container
  * @param {{ onStart: () => void, onSolo?: () => void }} opts  onStart runs the relay drill
  * @returns {{ leaderboardSlot: HTMLElement, updateSetup(setup: object): void }}
  */
 export function renderHome(container, { onStart, onSolo }) {
   const intro = el('section', 'home-intro');
-  const h = el('h2', 'home-title', PRODUCT_NAME);
-  const tag = el('p', 'home-tagline', HOME.tagline);
-  const instr = el('p', 'home-instruction', HOME.instruction);
+  const eyebrow = el('div', 'eyebrow', HOME.eyebrow);
+  const h = el('h2', 'home-title');
+  h.setAttribute('aria-label', `${PRODUCT_NAME}: ${HOME.headline.join(' ')}`);
+  for (const line of HOME.headline) h.append(el('span', 'home-title-line', line));
+  const lede = el('p', 'home-lede', HOME.lede);
 
-  const checklist = el('section', 'checklist');
-  checklist.hidden = true;
-  const checklistHeading = el('h2', 'checklist-heading', SETUP.heading);
-  const list = el('ul', 'checklist-list');
-  checklist.append(checklistHeading, list);
-
-  const start = el('button', 'btn btn-primary', RELAY.startRelay);
+  const start = el('button', 'btn btn-primary btn-cta', RELAY.startRelay);
   start.type = 'button';
   start.dataset.action = 'relay';
+  start.dataset.key = HOME.spaceKey;
   start.addEventListener('click', () => onStart());
-  const solo = el('button', 'btn', RELAY.startSolo);
+  const solo = el('button', 'btn btn-secondary btn-cta', RELAY.startSolo);
   solo.type = 'button';
   solo.dataset.action = 'solo';
   solo.addEventListener('click', () => (onSolo || onStart)());
@@ -139,15 +113,35 @@ export function renderHome(container, { onStart, onSolo }) {
   startAnyway.type = 'button';
   startAnyway.hidden = true;
   startAnyway.addEventListener('click', () => onStart());
-  const hint = el('span', 'hint', HOME.startHint);
-  const actions = el('div', 'actions');
-  actions.append(start, startAnyway, hint, solo);
+  const actions = el('div', 'actions home-cta');
+  actions.append(start, solo, startAnyway);
 
-  intro.append(h, tag, instr, positionDiagram(), checklist, actions);
+  const facts = el('div', 'facts');
+  for (const f of HOME.facts) {
+    const fact = el('div', 'fact');
+    fact.append(el('div', 'num fact-value', f.value), el('p', 'fact-text', f.text));
+    facts.append(fact);
+  }
+  const sources = el('p', 'fact-sources', HOME.factSources);
+
+  const steps = el('ol', 'steps');
+  for (const [i, step] of HOME.steps.entries()) {
+    const li = el('li', 'step');
+    const body = el('span', 'step-body');
+    body.append(el('strong', '', step.title), document.createTextNode(` ${step.text}`));
+    li.append(el('b', 'step-num', String(i + 1)), body);
+    steps.append(li);
+  }
+
+  intro.append(eyebrow, h, lede, actions, facts, sources, steps);
 
   const side = el('div', 'home-side');
-  const leaderboardSlot = el('div', 'home-leaderboard');
-  side.append(leaderboardSlot, shortcutLegend());
+  const checklist = el('section', 'card checklist');
+  checklist.hidden = true;
+  const list = el('ul', 'checklist-list');
+  checklist.append(el('h2', 'label checklist-heading', SETUP.heading), list);
+  const leaderboardSlot = el('div', 'card home-leaderboard');
+  side.append(checklist, leaderboardSlot, shortcutLegend());
 
   container.replaceChildren(intro, side);
 
@@ -158,25 +152,18 @@ export function renderHome(container, { onStart, onSolo }) {
     if (key === lastKey) return;
     lastKey = key;
     checklist.hidden = !view.visible;
-    positionDiagramToggle(view.visible);
     start.disabled = !view.startEnabled;
     start.classList.toggle('btn-primary', view.startEnabled);
     startAnyway.hidden = !view.showStartAnyway;
     list.replaceChildren(
       ...view.items.map((item) => {
-        const li = el('li', `check status-${item.pass ? 'good' : 'bad'}`);
+        const li = el('li', `check status-${item.pass ? 'good' : 'warn'}`);
         li.dataset.check = item.id;
         li.append(el('span', 'check-mark', item.pass ? SETUP.pass : SETUP.fail), el('span', 'check-label', item.label));
         if (item.hint) li.append(el('span', 'check-hint', item.hint));
         return li;
       }),
     );
-  }
-
-  // The diagram gives way to the checklist when there is one, to keep the screen unscrolled.
-  function positionDiagramToggle(checklistShown) {
-    const svg = intro.querySelector('.home-diagram');
-    if (svg) svg.classList.toggle('compact', checklistShown);
   }
 
   updateSetup({ ok: true, checks: [] });
@@ -191,12 +178,12 @@ export function renderHome(container, { onStart, onSolo }) {
  */
 export function renderError(container, error, { onRetry, onSimulator }) {
   const view = errorView(error?.code);
-  const box = el('section', 'error-box');
+  const box = el('section', 'card error-box');
   box.dataset.code = error?.code ?? 'unknown';
   const retry = el('button', 'btn btn-primary', ERRORS.tryAgain);
   retry.type = 'button';
   retry.addEventListener('click', () => onRetry());
-  const sim = el('button', 'btn', ERRORS.runSimulator);
+  const sim = el('button', 'btn btn-secondary', ERRORS.runSimulator);
   sim.type = 'button';
   sim.dataset.action = 'simulator';
   sim.addEventListener('click', () => onSimulator());

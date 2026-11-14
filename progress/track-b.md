@@ -137,3 +137,26 @@
 - Two people at the camera with one deliberately slow switch: the pause shows red and the compression fraction drops.
 - Save a team name and reload: still on the leaderboard with a Relay tag.
 - Then say "ship it".
+
+## B7: Design pass — done (2026-11-14)
+
+**Built**
+- `src/styles.css` rewritten around the CLAUDE.md tokens (all 13 on `:root`, same values; plus `--radius-sm` and `--ease` derived from them). No hex colour outside `:root`. Shared pieces: `.card`, `.label`, `.num` (`--font-num`, tabular figures), status-tinted pill chips, `.meter` / `.meter-fill` / `.meter-tick`, `.tag`, quiet `.btn` / `.btn-ghost` / `.btn-secondary` and one green `.btn-primary`.
+- **Top bar**: brand mark (inline SVG drawn with tokens), title in the middle in two parts ("Compressor 1" + "Turn 1 of 2", "Drill complete" + "2 turns · 0:10"; `setTitle` / `setTurnTitle` in `hud.js`, text still reads "Compressor 1 · Turn 1 of 2"), turn clock and Beat / Voice pills on the right. Button labels now "Beat on · B" / "Voice on · M".
+- **Home**: eyebrow, "CPR is a relay, not a sprint.", lede, Start relay drill (with a Space key hint) and Solo practice, three fact tiles with "Mell et al. 2017 · Hightower et al. 1995 · AHA", three steps; right column: setup checklist card (✓ green, ! amber), team board card, key legend. The B3 position diagram is gone (not in the design).
+- **Drill**: rate card (huge number, verdict, "per min · target 100–120", gauge with band), a two-slot row with Compressions (the second slot is for B9's "On the chest"), chips, status line, cue banner pinned to the bottom (hidden while empty).
+- **Switch**: drill dims behind; "Hands-off time", the pause timer (`clamp(180px, 34vh, 340px)`), a bar to 12 s with 5 s and 10 s ticks and labels, then "Switch! **Compressor 2**, start now" (compressor in `--accent`). The timer pulses once when it turns red.
+- **Results** (solo and relay share `scoreCard`, `saveCard`, `runAgainButton` from `results.js`): left column score ring (fills over 600 ms), grade, "Save to the team board" with the green Save, "Run it again · Space", team board; relay middle: On the chest card with 80% tick, one card per switch (early tag and note), longest pause, and an empty `.relay-timeline-slot` for B8 (`renderRelayResults` returns `timelineSlot`); relay right: compressor cards (score top right, "47 compressions · 104 / min · 0:27", verdict) then the debrief. Solo middle: breakdown card.
+- **Words**: "On the chest" everywhere (relay results label, team board "94% on chest"). Leaderboard heading is now "Team board"; scores coloured by grade band.
+- **Motion**: status colours over 150 ms (`--ease`), ring 600 ms, one red pulse; all off under `prefers-reduced-motion`.
+- Tests: `tests/styles.test.js` (tokens match CLAUDE.md, no hex outside `:root`, rate ≥ 120 px, pause timer ≥ 160 px, reduced-motion block, motion timings). Updated: retry buttons are found by `[data-action="retry"]` (the green button on results is now Save, as in the mock), home text check uses the new headline, team board text "92% on chest".
+
+**Screens checked in WebKit** (the Swift `WKWebView` runner from B6 against `vite preview`): home, drill, switch and relay results at 1366×768 and at 1920×1080 — page exactly the window size, no horizontal overflow, nothing clipped except the results team board, which shows as many rows as fit. Compared with `tasks/design/relay-mock.png`: same layout and hierarchy on all four. Two defects found and fixed this way: the top-bar controls drifting to the centre on home, and relay team names squeezed to nothing on the results board.
+
+**Differences from the mock, on purpose**: turn clock and pause read "34s" / "2.2s" style as before (tests and B5 use that format); the stage interior is Track A's (the scaffold's dashed "Fake engine" for now); the debrief card is Track C's.
+
+**Human checks still to do**
+- Each screen next to `tasks/design/relay-mock.png`: same product.
+- 3 m away during a drill and a switch: rate, compressor, turn clock and pause timer readable.
+- Once on a projector or big screen: nothing cut off.
+- Then say "ship it".

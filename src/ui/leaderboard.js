@@ -1,6 +1,7 @@
 // Leaderboard: top scores in localStorage. Names are always rendered with textContent.
 import { config } from '../config.js';
 import { LEADERBOARD } from '../copy.js';
+import { scoreStatus } from './results.js';
 
 export const STORAGE_KEY = 'pulsecoach.leaderboard.v1';
 
@@ -130,7 +131,7 @@ export function renderLeaderboard(container, { entries, onReset, confirm = (m) =
       tag.className = 'lb-tag';
       tag.textContent = relay ? LEADERBOARD.relayTag : '';
       const score = document.createElement('span');
-      score.className = 'lb-score';
+      score.className = `lb-score status-${scoreStatus(e.score)}`;
       score.textContent = String(e.score);
       li.append(name, tag, rate, score);
       ol.append(li);

@@ -1,9 +1,9 @@
 // Relay results: team score, compression fraction, switch pauses, one column per turn,
 // the debrief card, a team name field, the leaderboard and Try again.
 import { config } from '../config.js';
-import { RESULTS, RELAY, RELAY_RESULTS as T } from '../copy.js';
+import { RELAY, RELAY_RESULTS as T } from '../copy.js';
 import { renderDebriefCard } from '../debrief/card.js';
-import { scoreStatus } from './results.js';
+import { scoreStatus, scoreCard, saveCard, runAgainButton } from './results.js';
 
 /** Green at or above CCF_TARGET, amber at or above CCF_MIN, red below. */
 export function ccfStatus(pct, cfg = config) {
@@ -53,97 +53,73 @@ function el(tag, className, text) {
 }
 
 /**
+ * Relay results in three columns: team score, save, run again and the board; on the chest and
+ * each switch (with room for the timeline, task B8); one card per compressor, then the debrief.
  * @param {HTMLElement} container
  * @param {object} stats relay stats (Contract 2)
  * @param {{ onSave: (name: string) => void, onRetry: () => void, pauses?: {sec: number, early: boolean}[] }} opts
- * @returns {{ leaderboardSlot: HTMLElement, nameInput: HTMLInputElement }}
+ * @returns {{ leaderboardSlot: HTMLElement, nameInput: HTMLInputElement, timelineSlot: HTMLElement }}
  */
 export function renderRelayResults(container, stats, { onSave, onRetry, pauses = null }) {
   const cfg = config;
 
-  // Column 1: team score, compression fraction, switches
-  const main = el('section', 'relay-main');
-  const scoreBox = el('div', `results-score status-${scoreStatus(stats.score)}`);
-  scoreBox.append(el('div', 'hud-heading', T.teamScore), el('div', 'results-score-number', String(stats.score)), el('div', 'results-grade', stats.grade));
+  const left = el('section', 'results-col results-score-col');
+  const { card: save, input } = saveCard({ id: 'relay-team-name', placeholder: T.teamNamePlaceholder, srLabel: T.teamNameLabel, onSave });
+  const leaderboardSlot = el('div', 'card results-leaderboard');
+  left.append(scoreCard(T.teamScore, stats.score, stats.grade), save, runAgainButton(onRetry), leaderboardSlot);
 
-  const ccf = el('div', `relay-ccf status-${ccfStatus(stats.compressionFraction, cfg)}`);
-  const ccfTrack = el('div', 'relay-ccf-track');
-  const ccfFill = el('div', 'relay-ccf-fill');
+  const middle = el('section', 'results-col relay-middle');
+  const pair = el('div', 'relay-pair');
+  const ccf = el('section', `card relay-ccf status-${ccfStatus(stats.compressionFraction, cfg)}`);
+  const ccfLine = el('div', 'relay-ccf-line');
+  ccfLine.append(el('div', 'num relay-ccf-number', T.ccfValue(stats.compressionFraction)), el('small', 'relay-ccf-hint', T.ccfHint(cfg.CCF_TARGET)));
+  const ccfTrack = el('div', 'meter relay-ccf-track');
+  const ccfFill = el('i', 'meter-fill relay-ccf-fill');
   ccfFill.style.width = `${Math.max(0, Math.min(100, stats.compressionFraction))}%`;
-  const ccfMark = el('div', 'relay-ccf-target');
+  const ccfMark = el('span', 'meter-tick relay-ccf-target');
   ccfMark.style.left = `${cfg.CCF_TARGET}%`;
   ccfTrack.append(ccfFill, ccfMark);
-  ccf.append(
-    el('div', 'hud-heading', T.ccfHeading),
-    el('div', 'relay-ccf-number', T.ccfValue(stats.compressionFraction)),
-    ccfTrack,
-    el('div', 'relay-ccf-hint', T.ccfHint(cfg.CCF_TARGET)),
-  );
+  ccf.append(el('div', 'label', T.ccfHeading), ccfLine, ccfTrack);
 
   const switches = el('div', 'relay-switches');
-  switches.append(el('div', 'hud-heading', T.switchesHeading));
   const rows = switchRows(stats, pauses, cfg);
-  if (rows.length === 0) switches.append(el('div', 'relay-switch-none', T.noSwitches));
-  for (const row of rows) {
-    const r = el('div', `relay-switch status-${row.status}`);
-    r.append(el('span', 'relay-switch-label', row.label), el('span', 'relay-switch-sec', T.pauseValue(row.sec)));
-    if (row.early) r.append(el('span', 'relay-early', T.earlyTag));
-    switches.append(r);
+  if (rows.length === 0) {
+    const none = el('section', 'card relay-switch-none');
+    none.append(el('div', 'label', T.switchesHeading), el('div', 'relay-note', T.noSwitches));
+    switches.append(none);
   }
-  switches.append(el('div', 'relay-longest', T.longestPause(stats.longestPauseSec ?? 0)));
-  main.append(scoreBox, ccf, switches);
+  for (const row of rows) {
+    const card = el('section', `card relay-switch status-${row.status}`);
+    const line = el('div', 'relay-switch-line');
+    const sec = el('span', 'num relay-switch-sec', T.pauseNumber(row.sec));
+    sec.append(el('small', 'relay-switch-unit', T.pauseUnit));
+    line.append(sec);
+    if (row.early) line.append(el('span', 'tag tag-warn relay-early', T.earlyTag));
+    card.append(el('div', 'label relay-switch-label', row.label), line, el('div', 'relay-note', row.early ? T.earlyNote(cfg.PAUSE_MAX_SEC) : T.switchNote(cfg.PAUSE_MAX_SEC)));
+    switches.append(card);
+  }
+  pair.append(ccf, switches);
+  const longest = el('div', 'relay-longest', T.longestPause(stats.longestPauseSec ?? 0));
+  const timelineSlot = el('div', 'relay-timeline-slot');
+  middle.append(pair, longest, timelineSlot);
 
-  // Column 2: one column per turn, then the debrief
-  const middle = el('section', 'relay-middle');
-  const turns = el('div', 'relay-turns');
+  const right = el('section', 'results-col relay-right');
   for (const [i, turn] of (stats.turns || []).entries()) {
-    const col = el('div', 'relay-turn');
-    col.dataset.turn = String(i + 1);
+    const card = el('section', 'card relay-turn');
+    card.dataset.turn = String(i + 1);
     const slip = turnSlipLine(turn);
-    const slipLine = el('div', `relay-turn-slip status-${slip.status}`, slip.text);
-    col.append(
-      el('div', 'relay-turn-title', T.compressor(turn.compressor)),
-      el('div', 'relay-turn-stats', T.turnStats(turn.compressions, turn.avgRate)),
-      el('div', `relay-turn-score status-${scoreStatus(turn.score)}`, T.turnScore(turn.score)),
-      slipLine,
+    card.append(
+      el('h3', 'relay-turn-title', T.compressor(turn.compressor)),
+      el('div', `num relay-turn-score status-${scoreStatus(turn.score)}`, String(turn.score)),
+      el('div', 'relay-turn-stats', T.turnStats(turn.compressions, turn.avgRate, clockTime(turn.durationSec))),
+      el('div', `relay-turn-slip status-${slip.status}`, slip.text),
     );
-    turns.append(col);
+    right.append(card);
   }
   const debrief = el('div', 'results-debrief');
   renderDebriefCard(debrief, stats);
-  middle.append(turns, debrief);
+  right.append(debrief);
 
-  // Column 3: team name, leaderboard, Try again
-  const side = el('section', 'results-side relay-side');
-  const form = el('form', 'results-save');
-  const label = el('label', 'sr-only', T.teamNameLabel);
-  label.htmlFor = 'relay-team-name';
-  const input = document.createElement('input');
-  input.id = 'relay-team-name';
-  input.className = 'results-name';
-  input.type = 'text';
-  input.maxLength = cfg.NAME_MAX_CHARS;
-  input.placeholder = T.teamNamePlaceholder;
-  input.autocomplete = 'off';
-  const save = el('button', 'btn', RESULTS.save);
-  save.type = 'submit';
-  form.append(label, input, save);
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (save.disabled) return;
-    onSave(input.value);
-    save.disabled = true;
-    input.disabled = true;
-    save.textContent = RESULTS.saved;
-  });
-  const leaderboardSlot = el('div', 'results-leaderboard');
-  const retry = el('button', 'btn btn-primary', RESULTS.tryAgain);
-  retry.type = 'button';
-  retry.addEventListener('click', () => onRetry());
-  const actions = el('div', 'actions');
-  actions.append(retry, el('span', 'hint', RESULTS.tryAgainHint));
-  side.append(form, leaderboardSlot, actions);
-
-  container.replaceChildren(main, middle, side);
-  return { leaderboardSlot, nameInput: input };
+  container.replaceChildren(left, middle, right);
+  return { leaderboardSlot, nameInput: input, timelineSlot };
 }

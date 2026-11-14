@@ -38,7 +38,7 @@ describe('results screen', () => {
     form.dispatchEvent(new Event('submit', { cancelable: true }));
     form.dispatchEvent(new Event('submit', { cancelable: true }));
     expect(saved).toEqual(['Sam']);
-    root.querySelector('.btn-primary').click();
+    root.querySelector('[data-action="retry"]').click();
     expect(retries).toBe(1);
   });
 });
