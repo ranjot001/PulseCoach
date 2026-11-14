@@ -4,13 +4,13 @@
 // container empty.
 
 import './card.css';
-import { validateStats } from './schema.js';
-import { fallbackDebrief, NEUTRAL_TEXT } from './fallback.js';
+import { validateAnyStats } from './schema.js';
+import { fallbackAnyDebrief, NEUTRAL_TEXT } from './fallback.js';
 import { getDebrief } from './client.js';
 
 function cleanStats(stats) {
   try {
-    return validateStats(stats);
+    return validateAnyStats(stats);
   } catch {
     return null;
   }
@@ -42,7 +42,8 @@ export function renderDebriefCard(container, stats) {
 
     const title = doc.createElement('h2');
     title.className = 'debrief-card__title';
-    title.textContent = "Coach's debrief";
+    const isRelay = stats !== null && typeof stats === 'object' && stats.mode === 'relay';
+    title.textContent = isRelay ? 'Team debrief' : "Coach's debrief";
 
     const label = doc.createElement('span');
     label.className = 'debrief-card__label';
@@ -51,7 +52,7 @@ export function renderDebriefCard(container, stats) {
     const text = doc.createElement('p');
     text.className = 'debrief-card__text';
     const clean = cleanStats(stats);
-    text.textContent = clean ? fallbackDebrief(clean) : NEUTRAL_TEXT;
+    text.textContent = clean ? fallbackAnyDebrief(clean) : NEUTRAL_TEXT;
 
     const button = doc.createElement('button');
     button.type = 'button';

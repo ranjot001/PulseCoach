@@ -77,3 +77,29 @@
 - The repository owner imports the repo into Vercel and adds `ANTHROPIC_API_KEY`. Then open the public link with `?sim=1`, finish one session, and check that the debrief label changes to "AI coach".
 - Turn Wi-Fi off, run `npm run build && npm run preview`, and finish one session from the laptop.
 - Post the public link in the team chat.
+
+## C4: Relay debrief
+
+**Built**
+- `src/debrief/schema.js`:
+  - `validateRelayStats(body)` is as strict as `validateStats`. `mode` must be `'relay'`, and 1 to 8 turns are allowed. Each turn passes `validateStats` plus `compressor` (1 to 4), `slippedAtSec` (null or 0 to 3600) and `signs` (known, no repeats). Unknown fields are dropped at both levels.
+  - `validateAnyStats(body)` picks relay or solo by `mode`.
+  - `buildRelayPrompt(stats)` holds the post-drill team debrief prompt, with targets from config and the fixed honesty rules.
+- `src/debrief/fallback.js`: `fallbackRelayDebrief(stats)` gives three to five sentences: one for the team (compression fraction against target, switch time against the pause limit), one per compressor (slip with when and how, or strongest point and one fix), and a closing line. `fallbackAnyDebrief` picks by mode.
+- `src/debrief/card.js`: relay stats get the title "Team debrief"; solo is unchanged. `client.js` uses the matching quick tips and accepts replies up to 1200 characters.
+- `api/debrief.js`: accepts either shape via `validateAnyStats` and uses the matching prompt. The body limit is now 8 KB.
+- `dev/debrief.html`: buttons for `goodRelay`, `slowSwitchRelay` and `fadingRelay`.
+- `README.md`: already described the relay drill (C3), so no change was needed.
+- Tests: `tests/schema-relay.test.js`, `tests/fallback-relay.test.js`, plus relay cases in `tests/card.test.js`, `tests/api-debrief.test.js` and `tests/client.test.js`.
+
+**Config values changed**: none.
+
+**Request for Track B**: the relay debrief reads `PAUSE_MAX_SEC` and `CCF_TARGET`, which belong to Track B's section of `src/config.js` (tasks B5 and B6) but are not there yet. Until they are, `relayTargets()` in `src/debrief/schema.js` uses the starting values from `CLAUDE.md` (10 seconds and 80%). That is the only place those numbers appear. Once B5 adds them, the debrief follows config automatically.
+
+**Verified**
+- `npm run check` passes.
+- In headless Chrome, `/dev/debrief.html` shows "Team debrief" and a different debrief for each relay button. Solo buttons are unchanged, and there were no page errors.
+
+**Human checks still to do**
+- Open `/dev/debrief.html` and press the three relay buttons. Each should read like a short post-code debrief and match the sample's numbers.
+- With a key in `.env.local`, the AI text replaces the quick tips for a relay sample.

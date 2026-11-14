@@ -2,9 +2,9 @@
 // The API key is read only here, from the environment. It is never logged or returned.
 
 import Anthropic from '@anthropic-ai/sdk';
-import { validateStats, buildPrompt } from '../src/debrief/schema.js';
+import { validateAnyStats, buildPrompt, buildRelayPrompt } from '../src/debrief/schema.js';
 
-const MAX_BODY_BYTES = 2048;
+const MAX_BODY_BYTES = 8192; // a relay drill with eight turns fits comfortably
 const RATE_LIMIT = 20; // requests per minute, across all callers: enough for a demo
 const WINDOW_MS = 60_000;
 
@@ -52,13 +52,13 @@ export function createHandler({ getClient, now = () => Date.now() } = {}) {
     try {
       const body = await readBody(req);
       if (body.tooLarge) return send(res, 400, { error: 'Bad request' });
-      stats = validateStats(body.value);
+      stats = validateAnyStats(body.value);
     } catch {
       return send(res, 400, { error: 'Bad request' });
     }
 
     try {
-      const { system, user } = buildPrompt(stats);
+      const { system, user } = stats.mode === 'relay' ? buildRelayPrompt(stats) : buildPrompt(stats);
       const response = await clientFor().beta.messages.create({
         model: 'claude-opus-5-5',
         max_tokens: 16000, // thinking shares this budget; plenty of room so the reply is never cut off

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Readable } from 'node:stream';
 import { goodStats } from './fixtures/stats.js';
+import { fadingRelay, goodRelay } from './fixtures/relayStats.js';
 
 // The SDK is mocked: no test makes a real API call or needs a key.
 const create = vi.fn();
@@ -80,8 +81,8 @@ describe('api/debrief handler', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
-  it('returns 400 for a body over 2 KB, streamed or pre-parsed', async () => {
-    const big = JSON.stringify({ ...goodStats, padding: 'x'.repeat(3000) });
+  it('returns 400 for a body over 8 KB, streamed or pre-parsed', async () => {
+    const big = JSON.stringify({ ...goodStats, padding: 'x'.repeat(9000) });
     expect((await call(createHandler(), streamReq('POST', big))).statusCode).toBe(400);
     expect((await call(createHandler(), { method: 'POST', body: JSON.parse(big) })).statusCode).toBe(400);
     expect(create).not.toHaveBeenCalled();
@@ -148,5 +149,46 @@ describe('api/debrief handler', () => {
 
   it('exports a ready-made default handler', () => {
     expect(typeof defaultHandler).toBe('function');
+  });
+});
+
+describe('api/debrief handler with relay stats', () => {
+  it('accepts a relay body and calls the SDK with the relay prompt', async () => {
+    create.mockResolvedValue(reply());
+    const res = await call(createHandler(), streamReq('POST', JSON.stringify(fadingRelay)));
+    expect(res.statusCode).toBe(200);
+    expect(res.body.text).toMatch(/steady rhythm/);
+    const params = create.mock.calls[0][0];
+    expect(params.model).toBe('claude-opus-5-5');
+    expect(params.system).toMatch(/team that has just practised a relay/);
+    expect(params.messages[0].content).toContain('Compressor 1');
+    expect(params.messages[0].content).toContain('Compressor 2');
+    expect(params.messages[0].content).toContain('Started slipping 24 seconds in');
+  });
+
+  it('still uses the solo prompt for solo stats', async () => {
+    create.mockResolvedValue(reply());
+    await call(createHandler(), { method: 'POST', body: goodStats });
+    expect(create.mock.calls[0][0].system).not.toMatch(/relay/);
+  });
+
+  it('accepts a relay body larger than 2 KB but under 8 KB', async () => {
+    create.mockResolvedValue(reply());
+    const turns = Array.from({ length: 8 }, (_, i) => ({ ...goodRelay.turns[i % 2], compressor: (i % 2) + 1 }));
+    const raw = JSON.stringify({ ...goodRelay, switches: 7, turns });
+    expect(Buffer.byteLength(raw)).toBeGreaterThan(2048);
+    const res = await call(createHandler(), streamReq('POST', raw));
+    expect(res.statusCode).toBe(200);
+  });
+
+  it.each([
+    ['a bad mode', { ...fadingRelay, mode: 'team' }],
+    ['a turn with a string number', { ...fadingRelay, turns: [{ ...fadingRelay.turns[0], avgRate: '104' }] }],
+    ['an unknown sign', { ...fadingRelay, turns: [{ ...fadingRelay.turns[0], signs: ['tired'] }] }],
+    ['no turns', { ...fadingRelay, turns: [] }],
+  ])('returns 400 for relay stats with %s', async (_name, body) => {
+    const res = await call(createHandler(), streamReq('POST', JSON.stringify(body)));
+    expect(res.statusCode).toBe(400);
+    expect(create).not.toHaveBeenCalled();
   });
 });

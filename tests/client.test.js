@@ -71,3 +71,18 @@ describe('getDebrief', () => {
     expect((await getDebrief(goodStats, { fetchImpl: undefined })).source).toBe('fallback');
   });
 });
+
+import { fallbackRelayDebrief } from '../src/debrief/fallback.js';
+import { fadingRelay } from './fixtures/relayStats.js';
+
+describe('getDebrief with relay stats', () => {
+  it('returns the relay quick tips on failure', async () => {
+    const fetchImpl = vi.fn(async () => ({ ok: false, status: 502, json: async () => ({}) }));
+    expect(await getDebrief(fadingRelay, { fetchImpl })).toEqual({ text: fallbackRelayDebrief(fadingRelay), source: 'fallback' });
+  });
+
+  it('accepts a relay-length AI reply', async () => {
+    const text = 'Word '.repeat(110).trim() + '.';
+    expect((await getDebrief(fadingRelay, { fetchImpl: okFetch({ text }) })).source).toBe('ai');
+  });
+});

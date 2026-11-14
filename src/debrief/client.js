@@ -2,13 +2,13 @@
 // Only the stats object leaves the browser. Never throws.
 
 import { config } from '../config.js';
-import { fallbackDebrief, NEUTRAL_TEXT } from './fallback.js';
+import { fallbackAnyDebrief, NEUTRAL_TEXT } from './fallback.js';
 
-const MAX_TEXT_CHARS = 800;
+const MAX_TEXT_CHARS = 1200; // a relay debrief runs to about 110 words
 
 function fallback(stats) {
   try {
-    return { text: fallbackDebrief(stats), source: 'fallback' };
+    return { text: fallbackAnyDebrief(stats), source: 'fallback' };
   } catch {
     return { text: NEUTRAL_TEXT, source: 'fallback' };
   }

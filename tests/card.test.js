@@ -2,7 +2,8 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { getDebrief } from '../src/debrief/client.js';
 import { renderDebriefCard } from '../src/debrief/card.js';
-import { fallbackDebrief } from '../src/debrief/fallback.js';
+import { fallbackDebrief, fallbackRelayDebrief, NEUTRAL_TEXT } from '../src/debrief/fallback.js';
+import { goodRelay, fadingRelay } from './fixtures/relayStats.js';
 import { goodStats, slowStats, sloppyStats } from './fixtures/stats.js';
 
 // The network client is mocked; by default it answers with the fallback.
@@ -161,6 +162,51 @@ describe('renderDebriefCard with the AI debrief', () => {
 
   it('does not call the AI for invalid stats', async () => {
     renderDebriefCard(makeContainer(), { nope: true });
+    await flush();
+    expect(getDebrief).not.toHaveBeenCalled();
+  });
+});
+
+describe('renderDebriefCard with relay stats', () => {
+  it('shows the Team debrief title and the relay quick tips at once', () => {
+    const container = makeContainer();
+    renderDebriefCard(container, fadingRelay);
+    expect(container.querySelector('.debrief-card__title').textContent).toBe('Team debrief');
+    expect(container.querySelector('.debrief-card__label').textContent).toBe('Quick tips');
+    expect(container.querySelector('.debrief-card__text').textContent).toBe(fallbackRelayDebrief(fadingRelay));
+    expect(container.querySelector('button').textContent).toBe('Read aloud');
+  });
+
+  it('asks for the AI debrief with the clean relay stats and swaps it in', async () => {
+    getDebrief.mockResolvedValue({ text: 'Team, well done. Compressor 1, good switch.', source: 'ai' });
+    const container = makeContainer();
+    renderDebriefCard(container, { ...goodRelay, team: 'Night shift' });
+    await flush();
+    const sent = getDebrief.mock.calls[0][0];
+    expect(sent.mode).toBe('relay');
+    expect(sent).not.toHaveProperty('team');
+    expect(container.querySelector('.debrief-card__text').textContent).toBe('Team, well done. Compressor 1, good switch.');
+    expect(container.querySelector('.debrief-card__label').textContent).toBe('AI coach');
+    expect(container.querySelector('.debrief-card__title').textContent).toBe('Team debrief');
+  });
+
+  it('leaves solo stats unchanged', () => {
+    const container = makeContainer();
+    renderDebriefCard(container, goodStats);
+    expect(container.querySelector('.debrief-card__title').textContent).toBe("Coach's debrief");
+    expect(container.querySelector('.debrief-card__text').textContent).toBe(fallbackDebrief(goodStats));
+  });
+
+  it.each([
+    ['no turns', { ...fadingRelay, turns: [] }],
+    ['an unknown sign', { ...fadingRelay, turns: [{ ...fadingRelay.turns[0], signs: ['tired'] }] }],
+    ['a NaN fraction', { ...fadingRelay, compressionFraction: NaN }],
+    ['turns that are not objects', { ...fadingRelay, turns: [null, 'x'] }],
+  ])('shows the neutral sentence for broken relay stats (%s) and does not throw', async (_name, stats) => {
+    const container = makeContainer();
+    expect(() => renderDebriefCard(container, stats)).not.toThrow();
+    expect(container.childElementCount).toBeGreaterThan(0);
+    expect(container.querySelector('.debrief-card__text').textContent).toBe(NEUTRAL_TEXT);
     await flush();
     expect(getDebrief).not.toHaveBeenCalled();
   });
