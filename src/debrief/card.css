@@ -1,59 +1,62 @@
-/* Debrief card. Uses only the shared colour variables from src/styles.css. */
+/* Debrief card, styled like the card on screen 4 of tasks/design/relay-mock.png.
+   Design tokens from CLAUDE.md, with their values as fallbacks until task B7 adds them. */
 
 .debrief-card {
-  border: 2px solid var(--muted);
-  border-radius: 16px;
-  padding: 1.25rem 1.5rem;
-  background: var(--bg);
+  background: var(--surface, #0e1520);
+  border: 1px solid var(--line, #24324a);
+  border-radius: var(--radius, 18px);
+  padding: 16px 20px;
   color: var(--fg);
+  font-family: var(--font-ui, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif);
 }
 
 .debrief-card__header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
 }
 
 .debrief-card__title {
   margin: 0;
-  font-size: 1.6rem;
-  line-height: 1.2;
+  font-size: 20px;
+  line-height: 1.25;
 }
 
 .debrief-card__label {
-  border: 1px solid var(--muted);
-  border-radius: 999px;
-  padding: 0.1rem 0.7rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--muted);
+}
+
+.debrief-card__label--ai {
+  color: var(--accent, #5cc8ff);
 }
 
 .debrief-card__text {
-  margin: 0 0 1rem;
-  font-size: 1.45rem;
-  line-height: 1.45;
+  margin: 10px 0 12px;
+  font-size: 17px;
+  line-height: 1.5;
 }
 
 .debrief-card__speak {
-  border: 2px solid var(--fg);
-  border-radius: 10px;
-  padding: 0.5rem 1.1rem;
-  background: transparent;
+  background: var(--surface-2, #162031);
   color: var(--fg);
+  border: 1px solid var(--line, #24324a);
+  border-radius: 10px;
+  padding: 8px 14px;
   font: inherit;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .debrief-card__speak:hover,
 .debrief-card__speak:focus-visible {
-  background: var(--fg);
-  color: var(--bg);
+  border-color: var(--fg);
 }
 
 /* The AI text fades in when it replaces the quick tips. */

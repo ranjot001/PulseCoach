@@ -38,6 +38,10 @@ The site is hosted on Vercel, which is connected to this GitHub repository. Ever
 
 The key is read only on the server. Never commit it: `.env.local` is in `.gitignore`.
 
+## Educator view
+
+`/educator.html` lists every relay drill saved in this browser: how many teams met the targets, a trend chart, a table of drills, each drill's record with its team debrief, and buttons to export a CSV, print, or clear the history. Press "Load sample data" to see it with example drills; sample data is never saved. Nothing on the page leaves the browser.
+
 ## Keyboard shortcuts
 
 | Key | Action |

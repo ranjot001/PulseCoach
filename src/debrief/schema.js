@@ -131,13 +131,16 @@ const RELAY_NUMBER_FIELDS = {
 };
 
 /**
- * Relay targets the debrief talks about. PAUSE_MAX_SEC and CCF_TARGET belong to
+ * Relay targets the debrief and educator view use. PAUSE_WARN_SEC, PAUSE_MAX_SEC,
+ * CCF_MIN and CCF_TARGET belong to
  * Track B's section of src/config.js (tasks B5 and B6). Until they are there, the
  * starting values from CLAUDE.md are used; this is the only place they appear.
  */
 export function relayTargets(cfg = defaultConfig) {
   return {
+    pauseWarnSec: Number.isFinite(cfg.PAUSE_WARN_SEC) ? cfg.PAUSE_WARN_SEC : 5,
     pauseMaxSec: Number.isFinite(cfg.PAUSE_MAX_SEC) ? cfg.PAUSE_MAX_SEC : 10,
+    ccfMin: Number.isFinite(cfg.CCF_MIN) ? cfg.CCF_MIN : 60,
     ccfTarget: Number.isFinite(cfg.CCF_TARGET) ? cfg.CCF_TARGET : 80,
   };
 }

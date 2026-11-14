@@ -128,3 +128,34 @@ Confirmed on `main` or `track-a`: the setup checklist and its labels (B4), the S
 - Read the pitch aloud once with a timer.
 - Once B5 and A5 are on `main`, run the user test with five people and fill in the table.
 - Put the real results into the pitch's evidence section, then ask Claude to tighten it around them.
+
+## C6: Educator view and drill record
+
+**Built**
+- `educator.html` and `src/educator/`:
+  - `summary.js` is pure logic:
+    - `loadHistory`/`cleanHistory` read Contract 4 and skip any entry failing `validateRelayStats`. They never throw.
+    - `summariseHistory` returns drills, met `CCF_TARGET`, switches and how many were at or under `PAUSE_MAX_SEC`, slipped turns, and the median slip time.
+    - `toCsv` quotes every cell, doubles quotes, and puts `'` before cells starting with `=`, `+`, `-`, `@`, tab or CR.
+  - `page.js`: heading and back link, four tiles, an inline SVG trend with an 80% line, a table newest first (status colours: on the chest by `CCF_MIN`/`CCF_TARGET`, switch by `PAUSE_WARN_SEC`/`PAUSE_MAX_SEC`, score by `RESULT_GOOD_PCT`/`RESULT_WARN_PCT`), and a record for the selected drill with each turn and the `fallbackRelayDebrief` text. Also Export CSV (a browser download), Print, Clear history (asks first), the empty state, and "Load sample data" with a "Sample data, not real drills" banner. Sample data is never written to storage.
+  - `sample.js` is a copy of `tests/fixtures/history.js`; a test checks they still match.
+  - `educator.css`: design tokens with `CLAUDE.md` fallbacks, plus a print stylesheet (white page, dark text, no buttons). The page ends with "Practice record for adult hands-only CPR. Not a certification."
+- `vite.config.js`: `educator.html` is a build input, so it lands in `dist/`.
+- `src/debrief/card.css`: restyled with the tokens to match the card on screen 4 of the mock. "AI coach" shows in the accent colour (`card.js` adds `debrief-card__label--ai`).
+- `src/debrief/schema.js`: `relayTargets()` now also gives `PAUSE_WARN_SEC` (5) and `CCF_MIN` (60), with the same fallback rule as before.
+- `README.md`: a short "Educator view" section.
+- Tests: `tests/educator-summary.test.js`, `tests/educator-page.test.js` (jsdom).
+
+**Config values changed**: none. Still waiting on Track B for `PAUSE_WARN_SEC`, `PAUSE_MAX_SEC`, `CCF_MIN` and `CCF_TARGET` (see C4).
+
+**Note for Track B**: `/educator.html` exists and reads `pulsecoach.history.v1` as Contract 4 describes, so B8 can link to it (the mock's "Educator view" button on the results screen).
+
+**Verified**
+- `npm run check` passes. `dist/educator.html` is in the build.
+- `/educator.html` returns 200 under both `npm run dev` and `npm run preview`.
+- In headless Chrome: empty state, then "Load sample data" shows the banner and tiles 6, 4 of 6, 4 of 6 and 0:24, with 6 rows and nothing in `localStorage`. Selecting a row shows its record and debrief. Print media gives a white background, no visible buttons, and the closing line. No page errors.
+
+**Human checks still to do**
+- Open `/educator.html` and press "Load sample data". The tiles, chart and table should make sense at a glance, and the banner should be clear.
+- Once Track B's B8 is on `main`, run a drill, save a team name, and open the page. The drill should be there.
+- Press "Export CSV" and open the file. Press "Print" and look at the preview.

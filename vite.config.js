@@ -34,6 +34,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
+        educator: resolve(import.meta.dirname, 'educator.html'),
         stage: resolve(import.meta.dirname, 'dev/stage.html'),
         debrief: resolve(import.meta.dirname, 'dev/debrief.html'),
       },

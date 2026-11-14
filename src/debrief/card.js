@@ -71,6 +71,7 @@ export function renderDebriefCard(container, stats) {
           if (result?.source !== 'ai' || !card.isConnected) return;
           text.textContent = result.text;
           label.textContent = 'AI coach';
+          label.classList.add('debrief-card__label--ai');
           text.classList.remove('debrief-card__text--fresh');
           void text.offsetWidth; // restart the fade if it ran before
           text.classList.add('debrief-card__text--fresh');
