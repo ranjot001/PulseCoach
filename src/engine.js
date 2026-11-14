@@ -4,6 +4,8 @@ import { config } from './config.js';
 import { openCamera, stopStream } from './pose/camera.js';
 import { createPoseTracker } from './pose/poseTracker.js';
 import { createStage } from './ui/stage.js';
+import { createSimSource } from './pose/simSource.js';
+import { createMotionSignal } from './lib/signal.js';
 
 const STATE_INTERVAL_MS = 100;
 
@@ -68,6 +70,36 @@ function toEngineError(err) {
   return { code: err?.code || 'model-failed', message: String(err?.message || err) };
 }
 
+// Every frame, from any source, goes through the motion signal and is drawn.
+function createFramePipeline(view, now) {
+  const signal = createMotionSignal(config);
+  let fpsCount = 0;
+  let fpsWindowStart = now();
+  let fps = 0;
+  let last = null;
+  return {
+    push(frame) {
+      last = signal.push(frame);
+      view.draw(frame, config.MIN_VISIBILITY);
+      view.plot(frame.t, last.valid ? last.detrended : null);
+      fpsCount += 1;
+      const t = now();
+      if (t - fpsWindowStart >= 1000) {
+        fps = (fpsCount * 1000) / (t - fpsWindowStart);
+        fpsCount = 0;
+        fpsWindowStart = t;
+      }
+      return last;
+    },
+    get fps() {
+      return fps;
+    },
+    get last() {
+      return last;
+    },
+  };
+}
+
 // ─── Camera engine (A1: camera, tracking, overlay; no compressions yet) ────
 
 const KEY_SHOULDERS = [11, 12];
@@ -92,22 +124,14 @@ function createCameraEngine({ stage, onState, onError, timers, mediaDevices }) {
   let personVisible = false;
   let compressions = 0;
   let debug = false;
-  let fpsCount = 0;
-  let fpsWindowStart = 0;
-  let fps = 0;
+  let pipeline = null;
   let generation = 0; // guards against stop() during an in-flight start()
 
   function handleFrame(frame) {
     const now = t.now();
     lastFrameAt = now;
     personVisible = isPersonVisible(frame.landmarks);
-    view?.draw(frame, config.MIN_VISIBILITY);
-    fpsCount += 1;
-    if (now - fpsWindowStart >= 1000) {
-      fps = (fpsCount * 1000) / (now - fpsWindowStart);
-      fpsCount = 0;
-      fpsWindowStart = now;
-    }
+    pipeline?.push(frame);
   }
 
   function snapshot() {
@@ -125,7 +149,7 @@ function createCameraEngine({ stage, onState, onError, timers, mediaDevices }) {
 
   function emitState() {
     const state = snapshot();
-    if (debug && view) view.setDebugText(`${fps.toFixed(0)} fps · ${state.personVisible ? 'person' : 'no person'}`);
+    if (debug && view && pipeline) view.setDebugText(`${pipeline.fps.toFixed(0)} fps · ${state.personVisible ? 'person' : 'no person'}`);
     safeCall(onState, state);
   }
 
@@ -147,6 +171,7 @@ function createCameraEngine({ stage, onState, onError, timers, mediaDevices }) {
       try {
         view = createStage(stage || document.createElement('div'));
         view.setDebug(debug);
+        pipeline = createFramePipeline(view, t.now);
         stateTimer = t.setInterval(emitState, STATE_INTERVAL_MS);
         stream = await openCamera(mediaDevices);
         if (gen !== generation) return stopStream(stream);
@@ -162,7 +187,6 @@ function createCameraEngine({ stage, onState, onError, timers, mediaDevices }) {
         await tracker.load();
         if (gen !== generation) return;
         modelLoaded = true;
-        fpsWindowStart = t.now();
         tracker.start();
       } catch (err) {
         if (gen !== generation) return;
@@ -204,23 +228,20 @@ function createFakeEngine({ stage, onState, onCompression, onError, timers, sear
   let lastCompressionAt = null;
   let restMarked = false;
   let debug = false;
-  let panel = null;
-  let debugLine = null;
+  let view = null;
+  let pipeline = null;
+  // Simulated frames drive the skeleton and the motion signal. Counts, rate and
+  // issues still come from the scaffold's stand-in timers below until A3.
+  const source = createSimSource(
+    { cpm: sim.cpm, travel: sim.travel, bend: sim.bend, lean: sim.lean, recoil: sim.recoil },
+    t,
+  );
 
   function mountStage() {
-    if (!stage || typeof document === 'undefined') return;
-    panel = document.createElement('div');
-    panel.className = 'fake-engine-panel';
-    panel.style.cssText =
-      'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-      'min-height:240px;border:2px dashed var(--muted);color:var(--muted);font-size:2rem;';
-    const label = document.createElement('div');
-    label.textContent = 'Fake engine';
-    debugLine = document.createElement('div');
-    debugLine.style.cssText = 'font-size:1rem;margin-top:0.5rem;';
-    debugLine.hidden = !debug;
-    panel.append(label, debugLine);
-    stage.replaceChildren(panel);
+    if (typeof document === 'undefined') return;
+    view = createStage(stage || document.createElement('div'), { simulated: true });
+    view.setDebug(debug);
+    pipeline = createFramePipeline(view, t.now);
   }
 
   function currentRate() {
@@ -249,7 +270,9 @@ function createFakeEngine({ stage, onState, onCompression, onError, timers, sear
 
   function emitState() {
     const state = snapshot();
-    if (debugLine && debug) debugLine.textContent = `compressions ${state.compressions} · rate ${state.rate ?? '–'}`;
+    if (view && debug && pipeline) {
+      view.setDebugText(`${pipeline.fps.toFixed(0)} fps · compressions ${state.compressions} · rate ${state.rate ?? '–'}`);
+    }
     safeCall(onState, state);
   }
 
@@ -280,6 +303,7 @@ function createFakeEngine({ stage, onState, onCompression, onError, timers, sear
     if (compressionTimer !== null) t.clearInterval(compressionTimer);
     stateTimer = null;
     compressionTimer = null;
+    source.stop();
   }
 
   return {
@@ -292,6 +316,7 @@ function createFakeEngine({ stage, onState, onCompression, onError, timers, sear
         return;
       }
       ready = true;
+      if (pipeline) source.start((frame) => pipeline.push(frame));
       stateTimer = t.setInterval(emitState, STATE_INTERVAL_MS);
       compressionTimer = t.setInterval(emitCompression, periodMs);
       emitState();
@@ -311,7 +336,7 @@ function createFakeEngine({ stage, onState, onCompression, onError, timers, sear
     },
     setDebug(on) {
       debug = Boolean(on);
-      if (debugLine) debugLine.hidden = !debug;
+      view?.setDebug(debug);
     },
   };
 }

@@ -50,7 +50,7 @@ describe('fake engine', () => {
       expect(typeof e.elbowsLocked).toBe('boolean');
       expect(e.intervalMs).toBeCloseTo(500, 0);
     }
-    expect(stage.textContent).toContain('Fake engine');
+    expect(stage.textContent).toContain('SIMULATED');
 
     // onState fires about every 100 ms
     expect(states.length).toBeGreaterThanOrEqual(99);
@@ -99,5 +99,22 @@ describe('fake engine', () => {
     expect(() => engine.setDebug(false)).not.toThrow();
     expect(() => engine.stop()).not.toThrow();
     expect(() => engine.stop()).not.toThrow();
+  });
+
+  it('?sim=1 draws a simulated stage, and setDebug shows and hides the chart', async () => {
+    const timers = fakeTimers();
+    const stage = document.createElement('div');
+    const engine = createEngine({ stage, search: '?sim=1', timers });
+    await engine.start();
+    vi.advanceTimersByTime(1000);
+    expect(stage.querySelector('.pc-stage--sim')).not.toBeNull();
+    expect(stage.querySelector('.pc-stage__badge').textContent).toBe('SIMULATED');
+    const chart = stage.querySelector('.pc-stage__chart');
+    expect(chart.hidden).toBe(true);
+    engine.setDebug(true);
+    expect(chart.hidden).toBe(false);
+    engine.setDebug(false);
+    expect(chart.hidden).toBe(true);
+    engine.stop();
   });
 });

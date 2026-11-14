@@ -16,3 +16,13 @@
 - Test change: the scaffold's rate-zone test used `?cpm=80` without `sim=1`; it now passes `?sim=1&cpm=80`, since only `?sim=1` selects the fake engine.
 - No config values changed.
 - Human checks still to do: `npm run dev`, open `/dev/stage.html`, allow the camera; skeleton follows shoulders, elbows, wrists, hips; FPS badge shows 20 or more.
+
+## A2 Motion signal and simulator (on `track-a`)
+
+- Built: `src/pose/simSource.js` (`simFrame(tMs, params)` pure, seeded noise; `createSimSource(params, timers)` at 30 fps; params cpm, travel, noise, bend, lean, recoil, scale, seed, plus `drift` for tests), `src/lib/signal.js` (`createMotionSignal(config).push(frame)` → `{ t, raw, smooth, detrended, torsoLen, valid }`), `src/ui/chart.js` (last 6 s of the detrended signal, shown by `setDebug(true)`).
+- `src/engine.js`: `?sim=1` now draws the simulated skeleton on a dark stage with a SIMULATED badge. Every frame from the sim or the camera goes through the motion signal and the chart. Compression events and state for `?sim=1` still come from the scaffold stand-in (A3 replaces this). Interface unchanged.
+- **Signal definition note (for the team):** `raw` is shoulder-midpoint y minus hip-midpoint y, divided by the rolling-median torso length. Measuring from the top of the frame let the small torso-length wobble during each push leak into the signal, multiplied by the learner's position in the frame: half-scale figures read 27% bigger. Measured from the hips, full and half scale match within 2%. Still "shoulder height in torso units, larger when pushing down", so nothing downstream changes.
+- Detrending: moving average over `BASELINE_WINDOW_MS` plus a slope correction, so a steady posture drift does not leave an offset (a plain trailing average lags a drift by half a window, which was right at the 10% limit).
+- Config: added two Track A keys, `SMOOTH_WINDOW_MS: 100` (jitter smoothing) and `TORSO_WINDOW_MS: 1000` (torso-length median), so no window is hard-coded. No existing values changed.
+- Test change: the scaffold test that looked for the "Fake engine" panel now looks for the SIMULATED badge, which this task replaces it with.
+- Human checks still to do: `/dev/stage.html` with the camera, kneel side-on and push on the pillow → one bump per push; hold still → flat line; shift weight slowly → wave stays centred. Also eyeball `/dev/stage.html?sim=1` (moving skeleton, sine wave); no browser was available to me.

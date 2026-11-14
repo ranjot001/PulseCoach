@@ -4,6 +4,8 @@
 export const config = {
   // ─── Track A · Motion engine ───────────────────────────────────────────
   BASELINE_WINDOW_MS: 1000, // detrending window
+  SMOOTH_WINDOW_MS: 100, // short moving average that removes landmark jitter
+  TORSO_WINDOW_MS: 1000, // rolling median window for a steady torso length
   MIN_TRAVEL: 0.03, // torso units; smaller movements are not compressions
   MIN_INTERVAL_MS: 250, // two compressions cannot be closer than this
   RATE_MIN: 100,
