@@ -68,6 +68,13 @@ describe('relay drill with ?sim=1&turnSeconds=20', () => {
     expect(document.querySelectorAll('#screen-results .relay-switch')).toHaveLength(1);
     expect(document.querySelectorAll('#screen-results .relay-turn')).toHaveLength(2);
     expect(Number(document.querySelector('.relay-ccf-number').textContent.replace('%', ''))).toBeGreaterThan(80);
+    // The drill timeline is on screen: one line per compressor and the switch band.
+    const chart = document.querySelector('#screen-results .timeline-svg');
+    expect(chart).not.toBeNull();
+    expect(document.querySelector('#screen-results .timeline .label').textContent).toBe('Push size through the drill, each compressor against their own start');
+    expect(chart.querySelectorAll('path.tl-c1')).toHaveLength(1);
+    expect(chart.querySelectorAll('path.tl-c2')).toHaveLength(1);
+    expect(chart.querySelectorAll('rect.tl-pause').length).toBeGreaterThanOrEqual(1);
 
     // A team name with markup is saved and shown as literal text, tagged Relay.
     document.querySelector('#screen-results .results-name').value = '<b>x</b>';
@@ -77,6 +84,10 @@ describe('relay drill with ?sim=1&turnSeconds=20', () => {
     expect(li.querySelector('b')).toBeNull();
     expect(li.querySelector('.lb-tag').textContent).toBe('Relay');
     expect(JSON.parse(localStorage.getItem('pulsecoach.leaderboard.v1'))[0]).toMatchObject({ name: '<b>x</b>', mode: 'relay' });
+    // Saving a team name also saves the drill to the history (Contract 4).
+    const history = JSON.parse(localStorage.getItem('pulsecoach.history.v1'));
+    expect(history).toHaveLength(1);
+    expect(history[0]).toMatchObject({ team: '<b>x</b>', stats: { mode: 'relay' } });
     expect(errors).not.toHaveBeenCalled();
   });
 });

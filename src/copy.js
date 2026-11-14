@@ -163,6 +163,13 @@ export const RELAY_RESULTS = {
   teamNamePlaceholder: 'Team name',
 };
 
+export const TIMELINE = {
+  heading: 'Push size through the drill, each compressor against their own start',
+  pauseValue: (sec) => `${sec.toFixed(1)} s`,
+  slippingFrom: (time) => `slipping from ${time}`,
+  legend: { c1: 'Compressor 1', c2: 'Compressor 2', slipping: 'Slipping', handsOff: 'Hands off' },
+};
+
 export const SETUP = {
   heading: 'Get into position',
   startAnyway: 'Start anyway',
@@ -208,5 +215,5 @@ export const ERRORS = {
   runSimulator: 'Run simulator',
 };
 
-export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY, RELAY_RESULTS };
+export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY, RELAY_RESULTS, TIMELINE };
 export default copy;

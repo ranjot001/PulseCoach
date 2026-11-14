@@ -13,6 +13,8 @@ import { createVoice } from './audio/voice.js';
 import { createCoach } from './lib/feedback.js';
 import { summarise, summariseRelay, switchPauses } from './lib/score.js';
 import { createRelay, drillOptions } from './lib/relay.js';
+import { buildTimeline } from './lib/timeline.js';
+import { saveDrill } from './history.js';
 
 document.getElementById('title').textContent = PRODUCT_NAME;
 document.getElementById('footer').textContent = FOOTER_LINE;
@@ -320,8 +322,10 @@ function showRelayResults() {
   screens.results.classList.add('relay-results');
   const { leaderboardSlot } = renderRelayResults(screens.results, stats, {
     pauses: switchPauses(drill),
+    timeline: buildTimeline(drill, config),
     onSave(name) {
       leaderboard.add({ name, score: stats.score, avgRate, mode: 'relay', compressionFraction: stats.compressionFraction });
+      saveDrill(name, stats);
       drawLeaderboard(leaderboardSlot);
     },
     onRetry: startCountdown,

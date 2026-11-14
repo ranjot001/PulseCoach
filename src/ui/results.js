@@ -79,7 +79,7 @@ export function scoreCard(heading, score, grade) {
     }
     svg.append(c);
   }
-  ring.append(svg, el('div', 'num results-score-number', String(score)));
+  ring.append(svg, el('div', `num results-score-number${String(score).length > 2 ? ' is-long' : ''}`, String(score)));
   card.append(el('div', 'label', heading), ring, el('div', 'results-grade', grade));
   return card;
 }

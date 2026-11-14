@@ -49,6 +49,7 @@ export const config = {
   PAUSE_WARN_SEC: 5, PAUSE_MAX_SEC: 10,
   CCF_MIN: 60, CCF_TARGET: 80, // compression fraction: floor and target, in percent
   RELAY_WEIGHTS: { technique: 60, handsOff: 40 },
+  HISTORY_SIZE: 50, // saved drills kept in the history (Contract 4)
 
   // ─── Track C · Debrief and launch ──────────────────────────────────────
   DEBRIEF_TIMEOUT_MS: 6000,

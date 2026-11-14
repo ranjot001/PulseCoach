@@ -160,3 +160,27 @@
 - 3 m away during a drill and a switch: rate, compressor, turn clock and pause timer readable.
 - Once on a projector or big screen: nothing cut off.
 - Then say "ship it".
+
+## B8: Drill timeline and history — done (2026-11-14)
+
+**Built**
+- `src/lib/timeline.js`: `buildTimeline(drill, config)` → `{ durationSec, turns: [{ compressor, slippedAtSec, points: [{ tSec, pushPct }] }], pauses: [{ startSec, endSec, sec }] }`. `pushPct` = travel ÷ median travel in the turn's first `FATIGUE_BASELINE_MS` × 100, smoothed with a trailing rolling median of 5. `tSec` and `slippedAtSec` are seconds from the drill start. Pauses come from `handsOffGaps` (new in `score.js`; `handsOffPieces` now derives from it, so the chart and the score cannot disagree).
+- `src/ui/timeline.js`: `renderTimeline(container, timeline)`, inline SVG, no library: y 50–120%, dashed 100% line, dotted `--warn` line at `100 × (1 − FATIGUE_TRAVEL_DROP)`, compressor 1 `--accent`, compressor 2 `--good`, `--warn` after the slip with a "slipping from 0:24" marker, a shaded band per pause (label in `--bad` over `PAUSE_MAX_SEC`; pauses under 1 s are drawn but not labelled), time axis, legend. Never throws; a turn with fewer than 6 points draws nothing.
+- Relay results: the chart sits in the middle column under the On the chest / switch cards, headed "Push size through the drill, each compressor against their own start".
+- `src/history.js`: `saveDrill(team, stats)`, `loadHistory()`, `clearHistory()` on `pulsecoach.history.v1`, newest first, at most `HISTORY_SIZE`, entries `{ id, savedAt, team, stats }` (team trimmed like leaderboard names). No-op on missing or full storage. Saving a team name on relay results also calls `saveDrill`; solo sessions are not saved.
+- Three-digit scores use a smaller size inside the score ring.
+- Tests: `tests/timeline.test.js`, `tests/history.test.js`; `tests/main-relay.test.js` now checks the chart (two lines, a switch band) and that Save writes the history.
+
+**Config**: added `HISTORY_SIZE: 50` (Track B section).
+
+**Request for Track A**: `FATIGUE_BASELINE_MS` and `FATIGUE_TRAVEL_DROP` are not yet in Track A's section of `src/config.js` (they arrive with A5). Until then `src/lib/timeline.js` uses the CLAUDE.md values (10000 ms, 0.2), defined once in `fatigueSetting`; once A5 adds the keys, the config values are used automatically.
+
+**Educator link left out**: `educator.html` does not exist in the repository (not on `main` either), so per the task there is no "Educator view" link yet.
+
+**Fit**: relay results with the chart measured in WebKit at 1366×768 and 1920×1080 — page exactly the window size, nothing clipped except the team board showing as many rows as fit.
+
+**Human checks still to do**
+- Once A5 is on `main`, `?sim=1&fatigue=1`: compressor 1's line drops and turns amber, the pause band, compressor 2 flat near 100%.
+- Two people at the camera, fading on purpose in turn 1: the chart tells the same story.
+- Save a team name, then open `/educator.html` once it exists: the drill is listed.
+- Then say "ship it".

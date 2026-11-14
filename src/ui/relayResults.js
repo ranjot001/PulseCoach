@@ -3,6 +3,8 @@
 import { config } from '../config.js';
 import { RELAY, RELAY_RESULTS as T } from '../copy.js';
 import { renderDebriefCard } from '../debrief/card.js';
+import { renderTimeline } from './timeline.js';
+import { TIMELINE } from '../copy.js';
 import { scoreStatus, scoreCard, saveCard, runAgainButton } from './results.js';
 
 /** Green at or above CCF_TARGET, amber at or above CCF_MIN, red below. */
@@ -57,10 +59,10 @@ function el(tag, className, text) {
  * each switch (with room for the timeline, task B8); one card per compressor, then the debrief.
  * @param {HTMLElement} container
  * @param {object} stats relay stats (Contract 2)
- * @param {{ onSave: (name: string) => void, onRetry: () => void, pauses?: {sec: number, early: boolean}[] }} opts
+ * @param {{ onSave: (name: string) => void, onRetry: () => void, pauses?: {sec: number, early: boolean}[], timeline?: object }} opts
  * @returns {{ leaderboardSlot: HTMLElement, nameInput: HTMLInputElement, timelineSlot: HTMLElement }}
  */
-export function renderRelayResults(container, stats, { onSave, onRetry, pauses = null }) {
+export function renderRelayResults(container, stats, { onSave, onRetry, pauses = null, timeline = null }) {
   const cfg = config;
 
   const left = el('section', 'results-col results-score-col');
@@ -100,7 +102,13 @@ export function renderRelayResults(container, stats, { onSave, onRetry, pauses =
   }
   pair.append(ccf, switches);
   const longest = el('div', 'relay-longest', T.longestPause(stats.longestPauseSec ?? 0));
-  const timelineSlot = el('div', 'relay-timeline-slot');
+  const timelineSlot = el('section', 'relay-timeline-slot');
+  if (timeline) {
+    timelineSlot.classList.add('card', 'timeline');
+    const chart = el('div', 'timeline-chart');
+    timelineSlot.append(el('div', 'label', TIMELINE.heading), chart);
+    renderTimeline(chart, timeline, cfg);
+  }
   middle.append(pair, longest, timelineSlot);
 
   const right = el('section', 'results-col relay-right');

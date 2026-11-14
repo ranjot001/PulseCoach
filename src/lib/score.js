@@ -115,22 +115,26 @@ function drillEvents(drill) {
 }
 
 /**
- * Hands-off pieces in ms, from page-clock times: before the first compression, every gap longer
- * than PAUSE_MIN_MS, and after the last compression until the drill ends.
+ * Hands-off gaps as { startMs, endMs } on the page clock: before the first compression, every gap
+ * longer than PAUSE_MIN_MS, and after the last compression until the drill ends.
  */
-export function handsOffPieces(drill, cfg = defaultConfig) {
+export function handsOffGaps(drill, cfg = defaultConfig) {
   const start = drill?.startedAt ?? 0;
   const end = drill?.endedAt ?? start;
   const times = drillEvents(drill);
-  if (times.length === 0) return end > start ? [end - start] : [];
-  const pieces = [];
-  if (times[0] > start) pieces.push(times[0] - start);
+  if (times.length === 0) return end > start ? [{ startMs: start, endMs: end }] : [];
+  const gaps = [];
+  if (times[0] > start) gaps.push({ startMs: start, endMs: times[0] });
   for (let i = 1; i < times.length; i++) {
-    const gap = times[i] - times[i - 1];
-    if (gap > cfg.PAUSE_MIN_MS) pieces.push(gap);
+    if (times[i] - times[i - 1] > cfg.PAUSE_MIN_MS) gaps.push({ startMs: times[i - 1], endMs: times[i] });
   }
-  if (end > times[times.length - 1]) pieces.push(end - times[times.length - 1]);
-  return pieces;
+  if (end > times[times.length - 1]) gaps.push({ startMs: times[times.length - 1], endMs: end });
+  return gaps;
+}
+
+/** The length in ms of each hands-off gap. */
+export function handsOffPieces(drill, cfg = defaultConfig) {
+  return handsOffGaps(drill, cfg).map((g) => g.endMs - g.startMs);
 }
 
 /** Each switch: seconds from the last compression of one turn to the first of the next, and whether the app called it early. */
