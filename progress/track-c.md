@@ -56,3 +56,24 @@
 **Human checks still to do**
 - With a key and Wi-Fi on, open `/dev/debrief.html`. The AI text should replace the quick tips within a few seconds, with the label "AI coach", and match the sample's numbers.
 - Turn Wi-Fi off and press a button again. The quick tips should stay, with no error shown.
+
+## C3: Deploy and offline backup
+
+**Built**
+- `README.md`: what PulseCoach is, running locally with and without the AI debrief, the offline backup, how the public link updates, environment variables, keyboard shortcuts, the three demo sources, and the three tracks.
+- No `vercel.json`. Vercel detects Vite (`npm run build` into `dist/`) and runs `api/debrief.js` as a Node function without one. `npm install` on Vercel runs `postinstall`, which copies the wasm files into `public/wasm`, so they land in `dist/wasm`.
+
+**Config values changed**: none.
+
+**Verified**
+- `npm run check` passes.
+- `dist/` contains the four MediaPipe wasm files. **It has no pose model yet**, because Track A's A1 (`public/models/`) is not on `main`. Once it is, the model is copied into `dist/` the same way.
+- `npm run preview`: `/`, a built script, a built stylesheet, the wasm file and `/dev/debrief.html` all return 200. `/api/debrief` returns 404 there, so the card stays on quick tips.
+- `dist/` fetches no third-party URL. The only URLs are the SVG namespace and comments inside MediaPipe's wasm loader. No API key or `sk-ant` string is present.
+
+**README notes for later tasks**: `?video=` arrives with A6, `&fatigue=1` with A5 and `?turnSeconds=` with B5. The README says so; remove those notes once they ship.
+
+**Human checks still to do**
+- The repository owner imports the repo into Vercel and adds `ANTHROPIC_API_KEY`. Then open the public link with `?sim=1`, finish one session, and check that the debrief label changes to "AI coach".
+- Turn Wi-Fi off, run `npm run build && npm run preview`, and finish one session from the laptop.
+- Post the public link in the team chat.
