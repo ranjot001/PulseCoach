@@ -1,6 +1,6 @@
 # PulseCoach
 
-A web app that trains CPR as a team relay using only a laptop webcam. Two learners take turns kneeling over a firm pillow, side-on to the camera. The app tracks whoever is compressing. It counts compressions, checks rate and form, notices when compressions start to slip, and calls the switch. A simulated monitor interrupts for rhythm checks, and the app times every hands-off pause. The drill ends with a team score and a debrief for each compressor. A 30-second solo practice mode is kept as well. It covers adult hands-only CPR.
+A web app that trains CPR as a team relay using only a laptop webcam. Two learners take turns kneeling over a firm pillow, side-on to the camera. The app tracks whoever is compressing. It counts compressions, checks rate and form, notices when compressions start to slip, and calls the switch. A simulated monitor interrupts for rhythm checks, and the app times every hands-off pause. The drill ends with a team score, a timeline of the whole relay and a debrief for each compressor. An educator view lists every saved drill. A 30-second solo practice mode is kept as well. It covers adult hands-only CPR.
 
 **Why a relay.** After a 911 call, help takes a median of 7 minutes to arrive, and 13 in rural areas. In manikin studies, compression quality starts to drop after about one minute, and rescuers do not notice for about three. Guidelines say to switch compressors every 2 minutes, or sooner if tired, to keep pauses under 10 seconds, and to keep compressions going at least 80% of the time. The pitch line is "CPR is a relay, not a sprint." The users are nurses and code teams, who rotate compressors as standard practice.
 
@@ -27,9 +27,9 @@ Three people build at the same time, one track each. Every track owns its own fi
 
 | Track | Files |
 |---|---|
-| A | `src/engine.js`, `src/pose/`, `src/lib/geometry.js`, `src/lib/signal.js`, `src/lib/compressionDetector.js`, `src/lib/rate.js`, `src/lib/form.js`, `src/lib/fatigue.js`, `src/lib/setupCheck.js`, `src/ui/stage.js`, `src/ui/stage.css`, `src/ui/overlay.js`, `src/ui/chart.js`, `dev/stage.html`, `public/models/` |
-| B | `index.html`, `src/main.js`, `src/styles.css`, `src/copy.js`, `src/ui/hud.js`, `src/ui/home.js`, `src/ui/results.js`, `src/ui/relayResults.js`, `src/ui/leaderboard.js`, `src/audio/`, `src/lib/feedback.js`, `src/lib/score.js`, `src/lib/relay.js` |
-| C | `api/`, `src/debrief/`, `dev/debrief.html`, `vite.config.js`, `vercel.json`, `.env.example`, `README.md`, `docs/` |
+| A | `src/engine.js`, `src/pose/`, `src/lib/geometry.js`, `src/lib/signal.js`, `src/lib/compressionDetector.js`, `src/lib/rate.js`, `src/lib/form.js`, `src/lib/fatigue.js`, `src/lib/setupCheck.js`, `src/ui/stage.js`, `src/ui/stage.css`, `src/ui/overlay.js`, `src/ui/chart.js`, `src/ui/pushBars.js`, `dev/stage.html`, `public/models/` |
+| B | `index.html`, `src/main.js`, `src/styles.css`, `src/copy.js`, `src/ui/hud.js`, `src/ui/home.js`, `src/ui/results.js`, `src/ui/relayResults.js`, `src/ui/timeline.js`, `src/ui/leaderboard.js`, `src/audio/`, `src/history.js`, `src/lib/feedback.js`, `src/lib/score.js`, `src/lib/relay.js`, `src/lib/timeline.js`, `src/lib/flow.js` |
+| C | `api/`, `src/debrief/`, `src/educator/`, `educator.html`, `dev/debrief.html`, `vite.config.js`, `vercel.json`, `.env.example`, `README.md`, `docs/` |
 | Shared | `package.json`, `src/config.js`, `tests/fixtures/`, `CLAUDE.md`, `TEAM.md`, `tasks/` |
 
 - Each track also owns the tests for its own files. Name a test after the file it tests, such as `tests/signal.test.js`.
@@ -190,6 +190,21 @@ renderDebriefCard(container, stats);   // solo or relay stats; shows quick tips 
 
 The card never throws and never leaves the container empty.
 
+## Contract 4: drill history (Track B writes, Track C reads)
+
+Saved relay drills live in `localStorage` under the key `pulsecoach.history.v1`, as a JSON array, newest first, with at most `HISTORY_SIZE` entries:
+
+```js
+{
+  id,        // short unique string
+  savedAt,   // ISO date and time
+  team,      // the team name as typed; user text, so render it with textContent
+  stats,     // relay stats, exactly as in Contract 2
+}
+```
+
+Track B appends an entry when a team name is saved on the relay results screen. Track C's educator view reads the key, checks each entry, and skips any that fail. Nothing in the history leaves the browser. Samples are in `tests/fixtures/history.js`.
+
 ## Other shared definitions
 
 **Frame.** Every frame source inside the engine (camera, simulator, video file) produces the same object:
@@ -206,7 +221,25 @@ Landmark indices used: shoulders 11 and 12, elbows 13 and 14, wrists 15 and 16, 
 
 **Motion signal.** Shoulder-midpoint height in pixels divided by torso length in pixels (shoulder midpoint to hip midpoint). The unit is "torso units", so the signal does not depend on how far the learner is from the camera. Image y grows downward, so pushing down makes the signal larger.
 
-**Colours.** `src/styles.css` defines `--bg`, `--fg`, `--muted`, `--good`, `--warn` and `--bad`. Every track uses these variables and no other colours for status.
+**Colours and design tokens.** `src/styles.css` defines these on `:root`. Every track uses them and nothing else for colour, corners and fonts. The look to match is `tasks/design/relay-mock.png`, with the source in `tasks/design/relay-mock.html`.
+
+```css
+--bg: #070b12;         /* page */
+--surface: #0e1520;    /* cards and panels */
+--surface-2: #162031;  /* raised parts, tracks, inputs */
+--line: #24324a;       /* hairlines and borders */
+--fg: #f2f6fa;
+--muted: #8b99ad;
+--accent: #5cc8ff;     /* neutral data and links; never a status */
+--good: #2fd27a;
+--warn: #ffb224;
+--bad: #ff4d5e;
+--radius: 18px;
+--font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+--font-num: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+```
+
+Status is shown only with `--good`, `--warn` and `--bad`. The tokens beyond the first six arrive in `src/styles.css` with task B7. Until then, Tracks A and C write them with the value above as a fallback, such as `var(--surface, #0e1520)`, so their parts look right either way.
 
 ## CPR targets (adult, hands-only)
 
@@ -267,6 +300,20 @@ CCF_MIN: 60, CCF_TARGET: 80,   // compression fraction: floor and target, in per
 RELAY_WEIGHTS: { technique: 60, handsOff: 40 },
 ```
 
+Added for the extra features:
+
+```js
+// Track A (task A7)
+PUSH_BARS: 40,                 // compressions shown in the push-size strip
+
+// Track B (tasks B8 and B9)
+HISTORY_SIZE: 50,              // saved drills kept in the history
+FLOW_RISE: 0.12,               // each good compression closes this share of the gap to full
+FLOW_POOR_FACTOR: 0.5,         // a poor compression counts this much
+FLOW_HALF_LIFE_MS: 2500,       // the flow meter halves this fast when compressions stop
+FLOW_WARN: 50, FLOW_BAD: 25,   // meter colour limits
+```
+
 These are starting points. People will tune them at the webcam, so never hard-code a threshold anywhere else.
 
 ## Rules that apply to every task
@@ -279,6 +326,8 @@ These are starting points. People will tune them at the webcam, so never hard-co
 - **No secrets in the browser.** The API key is read only inside `api/debrief.js` from an environment variable. Never print, log or commit it.
 - **Readable from 3 metres.** Judges watch from a distance. Dark background, very large numbers, high contrast, and one consistent colour code: green for good, amber for nearly, red for fix this.
 - **Honest wording.** This is a practice aid for adult hands-only CPR. Call the fatigue check "slipping" or "dropping off"; it compares a person with their own start and is not a measurement of force or depth. When quoting fatigue research, say it comes from manikin studies. Never say certified, accurate, clinical or medical-grade. Do not give medical advice beyond compression technique.
-- **Render user text safely.** Leaderboard names are set with `textContent`, never `innerHTML`.
+- **The flow meter is a picture.** It shows why pauses matter. It is not a measurement of anyone's blood flow, and wherever it appears the words "illustration, not a measurement" appear with it.
+- **Future work stays in the pitch.** A sensor pad for measured depth, and patient profiles for adults, children and infants, are plans for the pitch only. Do not build them, and do not add a patient selector to the app.
+- **Render user text safely.** Leaderboard and team names are set with `textContent`, never `innerHTML`.
 - **Tests use synthetic data.** No test may need a camera, a network call or a real API key.
 - **Finish with proof.** End every task by running `npm test` and `npm run build` and showing the output.

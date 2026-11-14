@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PulseCoach design reference</title>
+<style>
+/* Design reference for task B7. Static mock: copy the look, not the markup.
+   Every frame is 1366 x 768, the smallest screen the app must fit. */
+:root {
+  --bg: #070b12;         /* page */
+  --surface: #0e1520;    /* cards and panels */
+  --surface-2: #162031;  /* raised parts, tracks, inputs */
+  --line: #24324a;       /* hairlines and borders */
+  --fg: #f2f6fa;
+  --muted: #8b99ad;
+  --accent: #5cc8ff;     /* neutral data and links; never a status */
+  --good: #2fd27a;
+  --warn: #ffb224;
+  --bad: #ff4d5e;
+  --radius: 18px;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-num: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 28px 16px 60px; background: #020407; color: var(--fg); font-family: var(--font-ui); }
+.cap { width: 1366px; max-width: 100%; margin: 0 auto 10px; color: var(--muted); font-size: 15px; zoom: var(--s, 1); }
+.cap b { color: var(--fg); }
+.frame { width: 1366px; height: 768px; margin: 0 auto 48px; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; position: relative; zoom: var(--s, 1); display: grid; grid-template-rows: 72px 1fr 34px; }
+button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+
+/* shared pieces */
+.label { font-size: 13px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-weight: 800; line-height: 1; letter-spacing: -.02em; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 20px; }
+.good { color: var(--good); } .warn { color: var(--warn); } .bad { color: var(--bad); } .muted { color: var(--muted); }
+.foot { display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+
+/* top bar */
+.bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 22px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; letter-spacing: -.01em; }
+.brand svg { width: 30px; height: 30px; }
+.turn { display: flex; align-items: baseline; gap: 14px; }
+.turn .who { font-size: 30px; font-weight: 800; letter-spacing: -.01em; }
+.turn .of { font-size: 18px; color: var(--muted); font-weight: 600; }
+.bar-right { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.clock { font-size: 44px; }
+.ghost { background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; color: var(--muted); }
+
+/* chips */
+.chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 9px; padding: 9px 16px; border-radius: 999px; font-weight: 700; font-size: 18px; border: 1.5px solid; }
+.chip::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+.chip.good { background: color-mix(in srgb, var(--good) 12%, transparent); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
+.chip.warn { background: color-mix(in srgb, var(--warn) 14%, transparent); border-color: color-mix(in srgb, var(--warn) 55%, transparent); }
+.chip.bad { background: color-mix(in srgb, var(--bad) 14%, transparent); border-color: color-mix(in srgb, var(--bad) 55%, transparent); }
+
+/* meters */
+.track { position: relative; height: 18px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.track > i { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: currentColor; }
+.tick { position: absolute; top: -5px; bottom: -5px; width: 2px; background: var(--fg); opacity: .8; }
+
+/* 1 · home */
+.home { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; padding: 24px 34px 16px; }
+.eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 14px; }
+.home h1 { font-size: 68px; line-height: .98; letter-spacing: -.035em; margin: 12px 0 14px; font-weight: 800; }
+.lede { font-size: 20px; line-height: 1.45; color: var(--muted); max-width: 31em; margin: 0 0 18px; }
+.cta { display: flex; gap: 14px; align-items: center; margin-bottom: 20px; }
+.primary { background: var(--good); color: #04130a; font-weight: 800; font-size: 22px; padding: 16px 26px; border-radius: 14px; display: inline-flex; gap: 12px; align-items: center; }
+.primary kbd { font: 700 13px var(--font-ui); background: rgba(0,0,0,.18); border-radius: 6px; padding: 3px 8px; }
+.secondary { background: transparent; border: 1.5px solid var(--line); color: var(--fg); font-weight: 700; font-size: 18px; padding: 15px 22px; border-radius: 14px; }
+.facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.fact { border-left: 3px solid var(--accent); padding: 2px 0 2px 14px; }
+.fact .num { font-size: 40px; }
+.fact p { margin: 6px 0 0; color: var(--muted); font-size: 15px; line-height: 1.35; }
+.src { color: var(--muted); font-size: 12px; margin: 14px 0 0; opacity: .8; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+.step { display: flex; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; font-size: 15px; line-height: 1.4; color: var(--muted); }
+.step b { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); color: var(--accent); font: 800 14px var(--font-num); }
+.step strong { color: var(--fg); }
+.side { display: grid; gap: 16px; align-content: start; }
+.check { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 600; padding: 7px 0; }
+.check small { color: var(--muted); font-weight: 500; font-size: 15px; }
+.dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 900; color: #04130a; background: var(--good); flex: none; }
+.dot.x { background: var(--warn); }
+.row { display: grid; grid-template-columns: 26px 1fr auto auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); font-size: 18px; }
+.row:first-of-type { border-top: 0; }
+.row .rank { color: var(--muted); font-weight: 700; }
+.row .name { font-weight: 700; }
+.tag { font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); border-radius: 6px; padding: 2px 6px; margin-left: 8px; }
+.row .num { font-size: 24px; }
+
+/* 2 · drill */
+.drill { display: grid; grid-template-columns: 1.32fr 1fr; gap: 16px; padding: 16px 18px; min-height: 0; }
+.stage { position: relative; border-radius: var(--radius); border: 1px solid var(--line); overflow: hidden; background: radial-gradient(120% 90% at 50% 20%, #142033 0%, #0a111b 70%); }
+.stage svg.body { position: absolute; inset: 0 0 118px 0; width: 100%; height: calc(100% - 118px); }
+.live { position: absolute; top: 14px; left: 14px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: .14em; color: var(--fg); background: rgba(0,0,0,.45); border-radius: 999px; padding: 6px 12px; }
+.live::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+.bars { position: absolute; left: 0; right: 0; bottom: 0; height: 118px; padding: 10px 16px 12px; background: linear-gradient(180deg, rgba(7,11,18,0) 0%, rgba(7,11,18,.92) 28%); }
+.bars .head { display: flex; justify-content: space-between; align-items: baseline; }
+.bars .plot { position: relative; height: 70px; margin-top: 6px; display: flex; align-items: flex-end; gap: 4px; }
+.bars .plot i { flex: 1; border-radius: 3px 3px 0 0; background: var(--good); }
+.bars .plot i.base { background: var(--muted); opacity: .55; }
+.bars .plot i.low { background: var(--warn); }
+.bars .ref { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--fg); opacity: .55; }
+.bars .ref span { position: absolute; right: 0; top: -17px; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.hud { display: grid; grid-template-rows: auto auto auto auto 1fr; gap: 12px; min-height: 0; }
+.rate { display: grid; grid-template-columns: auto 1fr; column-gap: 18px; align-items: end; }
+.rate .big { font-size: 150px; grid-row: 2; }
+.rate .say { grid-row: 2; padding-bottom: 18px; }
+.rate .say b { display: block; font-size: 30px; letter-spacing: -.01em; }
+.rate .say span { color: var(--muted); font-size: 16px; }
+.gauge { grid-column: 1 / -1; position: relative; height: 14px; border-radius: 999px; background: var(--surface-2); margin-top: 8px; }
+.gauge .band { position: absolute; top: 0; bottom: 0; left: 40%; width: 20%; background: color-mix(in srgb, var(--good) 40%, transparent); }
+.gauge .pin { position: absolute; top: -6px; bottom: -6px; width: 6px; border-radius: 3px; background: var(--fg); left: calc(52% - 3px); }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.duo .num { font-size: 52px; margin-top: 6px; }
+.duo small { color: var(--muted); font-size: 14px; font-weight: 600; margin-left: 8px; }
+.flow .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.flow .head em { font-style: normal; font-size: 12px; color: var(--muted); }
+.flow .track { height: 22px; }
+.cue { align-self: end; border-radius: 16px; padding: 14px 20px; font-size: 26px; font-weight: 800; letter-spacing: -.01em; background: color-mix(in srgb, var(--warn) 16%, var(--surface)); border: 1.5px solid color-mix(in srgb, var(--warn) 60%, transparent); color: var(--warn); }
+
+/* 3 · switch */
+.dim { filter: saturate(.5) brightness(.45); }
+.switch { position: absolute; inset: 72px 0 34px 0; display: grid; place-items: center; background: rgba(4,7,12,.62); }
+.switch .inner { text-align: center; width: 880px; }
+.switch .label { font-size: 22px; color: var(--fg); letter-spacing: .2em; }
+.switch .time { font-size: 300px; margin: 6px 0 0; }
+.switch .time small { font-size: 90px; font-weight: 700; margin-left: 8px; opacity: .7; }
+.pause { position: relative; margin: 18px 0 30px; }
+.pause .track { height: 20px; overflow: visible; }
+.pause .track > i { border-radius: 999px; }
+.pause .marks { display: flex; justify-content: space-between; margin-top: 12px; color: var(--muted); font-size: 15px; font-weight: 700; }
+.go { font-size: 46px; font-weight: 800; letter-spacing: -.02em; }
+.go span { color: var(--accent); }
+
+/* 4 · results */
+.results { display: grid; grid-template-columns: 290px 1fr 372px; gap: 16px; padding: 16px 18px; min-height: 0; }
+.col { display: grid; gap: 12px; align-content: start; min-height: 0; }
+.score { text-align: center; padding: 22px 20px; }
+.ring { position: relative; width: 208px; height: 208px; margin: 10px auto 12px; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 96px; }
+.grade { font-size: 32px; font-weight: 800; letter-spacing: -.01em; }
+.field { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.field input { background: var(--surface-2); border: 1px solid var(--line); border-radius: 12px; color: var(--fg); font: 600 17px var(--font-ui); padding: 12px 14px; min-width: 0; }
+.field button, .again { background: var(--good); color: #04130a; font-weight: 800; border-radius: 12px; padding: 12px 18px; font-size: 17px; }
+.again { width: 100%; background: transparent; color: var(--fg); border: 1.5px solid var(--line); }
+.pair { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; }
+.ccf .num { font-size: 84px; margin: 6px 0 14px; }
+.ccf .num small { font-size: 18px; font-weight: 700; color: var(--muted); margin-left: 10px; letter-spacing: 0; }
+.ccf .track { overflow: visible; }
+.ccf .track > i { border-radius: 999px; }
+.sw { display: flex; align-items: baseline; gap: 12px; margin-top: 10px; }
+.sw .num { font-size: 52px; }
+.sw .tag { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 55%, transparent); margin: 0; }
+.sw-note { color: var(--muted); font-size: 15px; margin-top: 10px; }
+.chart svg { width: 100%; height: 268px; display: block; margin-top: 8px; }
+.chart .legend { display: flex; gap: 18px; color: var(--muted); font-size: 14px; font-weight: 600; margin-top: 4px; }
+.chart .legend i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.turncard { display: grid; grid-template-columns: 1fr auto; gap: 4px 14px; align-items: center; }
+.turncard h3 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.turncard .stats { color: var(--muted); font-size: 15px; font-weight: 600; }
+.turncard .num { font-size: 46px; grid-row: 1 / span 2; grid-column: 2; }
+.turncard .verdict { grid-column: 1 / -1; font-size: 16px; font-weight: 700; margin-top: 4px; }
+.debrief h3 { margin: 0; font-size: 20px; }
+.debrief .top { display: flex; justify-content: space-between; align-items: baseline; }
+.debrief p { margin: 10px 0 12px; font-size: 16px; line-height: 1.5; color: #d6dee8; }
+.debrief button { background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; font-size: 14px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<p class="cap"><b>PulseCoach design reference.</b> Four screens at 1366 × 768. Copy the look, spacing and hierarchy; the markup is only a sketch. Sample numbers match <code>fadingRelay</code> in <code>tests/fixtures/relayStats.js</code>.</p>
+
+<!-- ───────────── 1 · HOME ───────────── -->
+<p class="cap"><b>1 · Home</b></p>
+<div class="frame">
+  <header class="bar">
+    <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0e1520"/><path d="M3 17h6l3-8 5 15 4-11 2 4h6" fill="none" stroke="#2fd27a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>PulseCoach</div>
+    <div></div>
+    <div class="bar-right"><button class="ghost">Beat on · B</button><button class="ghost">Voice on · M</button></div>
+  </header>
+  <section class="home">
+    <div>
+      <div class="eyebrow">Team CPR drill · adult hands-only</div>
+      <h1>CPR is a relay,<br>not a sprint.</h1>
+      <p class="lede">Two people, one pillow, one laptop camera. PulseCoach spots when compressions start to slip, calls the switch and times every pause.</p>
+      <div class="cta">
+        <button class="primary">Start relay drill <kbd>Space</kbd></button>
+        <button class="secondary">Solo practice · 30 s</button>
+      </div>
+      <div class="facts">
+        <div class="fact"><div class="num">7 min</div><p>median wait for help after a 911 call</p></div>
+        <div class="fact"><div class="num">~1 min</div><p>until compression quality starts to drop, in manikin studies</p></div>
+        <div class="fact"><div class="num">80%</div><p>of the time, compressions should be happening</p></div>
+      </div>
+      <p class="src">Mell et al. 2017 · Hightower et al. 1995 · AHA</p>
+      <div class="steps">
+        <div class="step"><b>1</b><span><strong>Compress.</strong> The camera learns your own level in the first 10 seconds.</span></div>
+        <div class="step"><b>2</b><span><strong>Switch.</strong> On the clock, or sooner if you start to slip. Keep the pause under 10 seconds.</span></div>
+        <div class="step"><b>3</b><span><strong>Debrief.</strong> A team score and a line for each compressor.</span></div>
+      </div>
+    </div>
+    <aside class="side">
+      <div class="card">
+        <div class="label">Get in position</div>
+        <div class="check" style="margin-top:8px"><span class="dot">✓</span>In view</div>
+        <div class="check"><span class="dot">✓</span>Side-on to the camera</div>
+        <div class="check"><span class="dot x">!</span>Distance <small>Move back a little</small></div>
+      </div>
+      <div class="card">
+        <div class="label">Team board</div>
+        <div class="row" style="margin-top:6px"><span class="rank">1</span><span class="name">Ward 4B<span class="tag">Relay</span></span><span class="muted">94% on chest</span><span class="num good">96</span></div>
+        <div class="row"><span class="rank">2</span><span class="name">Night shift<span class="tag">Relay</span></span><span class="muted">90% on chest</span><span class="num good">92</span></div>
+        <div class="row"><span class="rank">3</span><span class="name">Sim lab<span class="tag">Relay</span></span><span class="muted">79% on chest</span><span class="num warn">82</span></div>
+        <div class="row"><span class="rank">4</span><span class="name">Priya</span><span class="muted">112 / min</span><span class="num good">94</span></div>
+      </div>
+    </aside>
+  </section>
+  <div class="foot">Practice aid for adult hands-only CPR. Not a substitute for certified training.</div>
+</div>
+
+<!-- ───────────── 2 · DRILL ───────────── -->
+<p class="cap"><b>2 · Drill, compressing.</b> The push-size bars inside the stage are Track A's (task A7). Everything on the right is Track B's.</p>
+<div class="frame" id="drill">
+  <header class="bar">
+    <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0e1520"/><path d="M3 17h6l3-8 5 15 4-11 2 4h6" fill="none" stroke="#2fd27a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>PulseCoach</div>
+    <div class="turn"><span class="who">Compressor 1</span><span class="of">Turn 1 of 2</span></div>
+    <div class="bar-right"><div class="clock num">0:13</div><button class="ghost">Beat on</button><button class="ghost">Voice on</button></div>
+  </header>
+  <section class="drill">
+    <div class="stage">
+      <svg class="body" viewBox="0 0 760 420" preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="372" width="760" height="48" fill="#0a111b"/>
+        <rect x="318" y="336" width="250" height="44" rx="20" fill="#1b2940"/>
+        <g stroke="#5cc8ff" stroke-width="9" stroke-linecap="round" fill="none">
+          <path d="M440 150 L262 280"/><path d="M262 280 L338 372 L170 380"/>
+          <path d="M440 150 L441 244 L442 332"/>
+        </g>
+        <circle cx="462" cy="108" r="30" fill="none" stroke="#5cc8ff" stroke-width="7"/>
+        <g fill="#f2f6fa"><circle cx="440" cy="150" r="9"/><circle cx="441" cy="244" r="9"/><circle cx="442" cy="332" r="9"/><circle cx="262" cy="280" r="9"/></g>
+      </svg>
+      <div class="live">LIVE</div>
+      <div class="bars">
+        <div class="head"><span class="label">Push size vs your start</span><span class="label warn">Smaller pushes</span></div>
+        <div class="plot" id="bars"><div class="ref" style="bottom:70%"><span>your start</span></div></div>
+      </div>
+    </div>
+    <div class="hud">
+      <div class="card rate">
+        <div class="label" style="grid-column:1/-1">Rate</div>
+        <div class="num big warn">101</div>
+        <div class="say"><b class="warn">Slowing</b><span>per min · target 100–120</span></div>
+        <div class="gauge"><div class="band"></div><div class="pin" style="left:calc(41% - 3px)"></div></div>
+      </div>
+      <div class="duo">
+        <div class="card"><div class="label">Compressions</div><div class="num">43</div></div>
+        <div class="card"><div class="label">On the chest</div><div class="num good">96%<small>target 80%</small></div></div>
+      </div>
+      <div class="card flow good">
+        <div class="head"><span class="label">Blood flow</span><em>illustration, not a measurement</em></div>
+        <div class="track"><i style="width:84%"></i></div>
+      </div>
+      <div class="chips">
+        <span class="chip good">Elbows</span><span class="chip good">Position</span><span class="chip good">Recoil</span><span class="chip warn">Slipping</span>
+      </div>
+      <div class="cue">Your compressions are dropping off. Switch now.</div>
+    </div>
+  </section>
+  <div class="foot">Practice aid for adult hands-only CPR. Not a substitute for certified training.</div>
+</div>
+
+<!-- ───────────── 3 · SWITCH ───────────── -->
+<p class="cap"><b>3 · Switch.</b> The pause timer is the whole screen. Green to 5 s, amber to 10 s, red after.</p>
+<div class="frame">
+  <header class="bar">
+    <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0e1520"/><path d="M3 17h6l3-8 5 15 4-11 2 4h6" fill="none" stroke="#2fd27a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>PulseCoach</div>
+    <div class="turn"><span class="who">Switch</span><span class="of">Turn 2 of 2 next</span></div>
+    <div class="bar-right"><button class="ghost">Beat on</button><button class="ghost">Voice on</button></div>
+  </header>
+  <section class="drill dim"><div class="stage"></div><div class="hud"><div class="card" style="height:230px"></div><div class="card" style="height:110px"></div><div class="card" style="height:80px"></div></div></section>
+  <div class="foot">Practice aid for adult hands-only CPR. Not a substitute for certified training.</div>
+  <div class="switch">
+    <div class="inner">
+      <div class="label">Hands-off time</div>
+      <div class="num time good">4.2<small>s</small></div>
+      <div class="pause good">
+        <div class="track"><i style="width:35%"></i><span class="tick" style="left:41.7%"></span><span class="tick" style="left:83.3%"></span></div>
+        <div class="marks"><span>0</span><span style="margin-left:26%">5 s</span><span style="margin-left:30%">10 s · limit</span><span>12</span></div>
+      </div>
+      <div class="go">Switch! <span>Compressor 2</span>, start now</div>
+    </div>
+  </div>
+</div>
+
+<!-- ───────────── 4 · RESULTS ───────────── -->
+<p class="cap"><b>4 · Relay results.</b> Left: the score. Middle: how the team did, with the timeline as proof. Right: each compressor and the debrief.</p>
+<div class="frame">
+  <header class="bar">
+    <div class="brand"><svg viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#0e1520"/><path d="M3 17h6l3-8 5 15 4-11 2 4h6" fill="none" stroke="#2fd27a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>PulseCoach</div>
+    <div class="turn"><span class="who">Drill complete</span><span class="of">2 turns · 1:14</span></div>
+    <div class="bar-right"><button class="ghost">Educator view</button></div>
+  </header>
+  <section class="results">
+    <div class="col">
+      <div class="card score">
+        <div class="label">Team score</div>
+        <div class="ring">
+          <svg viewBox="0 0 208 208"><circle cx="104" cy="104" r="88" fill="none" stroke="#162031" stroke-width="18"/><circle cx="104" cy="104" r="88" fill="none" stroke="#2fd27a" stroke-width="18" stroke-linecap="round" stroke-dasharray="552.9" stroke-dashoffset="44.2"/></svg>
+          <div class="num">92</div>
+        </div>
+        <div class="grade good">Lifesaver</div>
+      </div>
+      <div class="card">
+        <div class="label">Save to the team board</div>
+        <div class="field"><input value="Ward 4B" aria-label="Team name"><button>Save</button></div>
+      </div>
+      <button class="again">Run it again · Space</button>
+    </div>
+
+    <div class="col">
+      <div class="pair">
+        <div class="card ccf good">
+          <div class="label">On the chest</div>
+          <div class="num">90%<small>target 80%</small></div>
+          <div class="track"><i style="width:90%"></i><span class="tick" style="left:80%"></span></div>
+        </div>
+        <div class="card">
+          <div class="label">Switch 1</div>
+          <div class="sw"><span class="num warn">6.1<small style="font-size:22px"> s</small></span><span class="tag">Early switch</span></div>
+          <div class="sw-note">Called at 0:27, when compressor 1 started slipping. Limit 10 s.</div>
+        </div>
+      </div>
+      <div class="card chart">
+        <div class="label">Push size through the drill, each compressor against their own start</div>
+        <svg id="timeline" viewBox="0 0 640 190" preserveAspectRatio="none"></svg>
+        <div class="legend"><span><i style="background:var(--accent)"></i>Compressor 1</span><span><i style="background:var(--good)"></i>Compressor 2</span><span><i style="background:var(--warn)"></i>Slipping</span><span><i style="background:var(--line);height:10px"></i>Hands off</span></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="card turncard">
+        <h3>Compressor 1</h3><div class="num warn">76</div>
+        <div class="stats">47 compressions · 104 / min · 0:27</div>
+        <div class="verdict warn">Started slipping at 0:24: smaller pushes, slower</div>
+      </div>
+      <div class="card turncard">
+        <h3>Compressor 2</h3><div class="num good">93</div>
+        <div class="stats">72 compressions · 109 / min · 0:40</div>
+        <div class="verdict good">Held form for the whole turn</div>
+      </div>
+      <div class="card debrief">
+        <div class="top"><h3>Team debrief</h3><span class="label" style="color:var(--accent)">AI coach</span></div>
+        <p>You kept compressions going 90% of the time and switched in 6 seconds, both inside target. Compressor 1, your pushes got smaller and slower from about 24 seconds; switching early was the right call. Compressor 2, your pace held steady, so next time aim for a full release on every push.</p>
+        <button>Read aloud</button>
+      </div>
+    </div>
+  </section>
+  <div class="foot">Practice aid for adult hands-only CPR. Not a substitute for certified training.</div>
+</div>
+
+<script>
+// Fit the 1366 px frames to narrower windows.
+function fit() { document.documentElement.style.setProperty('--s', Math.min(1, (innerWidth - 32) / 1366)); }
+fit(); addEventListener('resize', fit);
+
+// Push-size bars: 8 baseline bars, steady bars, then a fade below the threshold.
+const bars = document.getElementById('bars');
+for (let i = 0; i < 40; i++) {
+  const wobble = Math.sin(i * 2.3) * 0.05;
+  const ratio = i < 28 ? 1 + wobble : 1 + wobble - (i - 27) * 0.027;
+  const b = document.createElement('i');
+  b.style.height = Math.round(ratio * 70) + '%';
+  if (i < 8) b.className = 'base'; else if (ratio < 0.8) b.className = 'low';
+  bars.appendChild(b);
+}
+
+// Results timeline: x = seconds into the drill (0 to 74), y = push size, 50% to 120% of own start.
+const svg = document.getElementById('timeline');
+const X = (s) => 34 + (s / 74) * 596, Y = (p) => 170 - ((p - 50) / 70) * 150;
+const el = (tag, attrs, text) => { const n = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) n.setAttribute(k, attrs[k]); if (text) n.textContent = text; svg.appendChild(n); return n; };
+const txt = { 'font-size': 11, 'font-weight': 700, fill: '#8b99ad', 'font-family': 'system-ui, sans-serif' };
+el('rect', { x: X(27), y: 12, width: X(33.1) - X(27), height: 160, fill: '#24324a', opacity: .7, rx: 4 });
+el('text', { ...txt, x: (X(27) + X(33.1)) / 2, y: 26, 'text-anchor': 'middle', fill: '#f2f6fa' }, '6.1 s');
+el('line', { x1: 34, x2: 630, y1: Y(100), y2: Y(100), stroke: '#f2f6fa', 'stroke-opacity': .5, 'stroke-dasharray': '5 5' });
+el('line', { x1: 34, x2: 630, y1: Y(80), y2: Y(80), stroke: '#ffb224', 'stroke-opacity': .6, 'stroke-dasharray': '3 6' });
+el('text', { ...txt, x: 0, y: Y(100) + 4 }, '100%');
+el('text', { ...txt, x: 6, y: Y(80) + 4 }, '80%');
+const line = (from, to, fn) => { let d = ''; for (let s = from; s <= to; s += 0.55) d += (d ? ' L' : 'M') + X(s).toFixed(1) + ' ' + Y(fn(s)).toFixed(1); return d; };
+const one = (s) => 100 + Math.sin(s * 1.9) * 3.5 - (s > 17 ? (s - 17) * 2.9 : 0);
+el('path', { d: line(0.8, 24, one), fill: 'none', stroke: '#5cc8ff', 'stroke-width': 3, 'stroke-linejoin': 'round' });
+el('path', { d: line(24, 27, one), fill: 'none', stroke: '#ffb224', 'stroke-width': 3.5, 'stroke-linejoin': 'round' });
+el('path', { d: line(33.1, 73, (s) => 100 + Math.sin(s * 1.7) * 3.5), fill: 'none', stroke: '#2fd27a', 'stroke-width': 3, 'stroke-linejoin': 'round' });
+el('line', { x1: X(24), x2: X(24), y1: 34, y2: 172, stroke: '#ffb224', 'stroke-width': 1.5 });
+el('text', { ...txt, x: X(24) - 6, y: 44, 'text-anchor': 'end', fill: '#ffb224' }, 'slipping from 0:24');
+for (const s of [0, 20, 40, 60]) el('text', { ...txt, x: X(s), y: 187, 'text-anchor': 'middle' }, Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'));
+</script>
+</body>
+</html>

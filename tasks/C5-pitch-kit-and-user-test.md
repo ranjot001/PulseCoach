@@ -40,12 +40,13 @@ All three are Markdown files in `docs/`. Write them from what the app actually d
     - A pillow is not a manikin.
     - The drill shortens the 2-minute turn so it fits a demo.
     - The camera cannot see hand placement.
+    - The blood-flow meter is an illustration of why pauses matter, not a measurement.
   - **What comes next.** Present these as plans, not as things the app does today:
     - **A sensor pad.** A low-cost pressure and motion sensor under the pillow or manikin that measures compression depth and force directly. The camera then handles rate, form and slipping, and the pad handles centimetres.
     - **Patient profiles.** With measured depth, the app can switch targets by patient: adult 5 to 6 cm, child about 5 cm, infant about 4 cm (AHA).
     - **Too-deep warnings.** The adult limit of 6 cm exists because deeper compressions are linked to more injuries, mostly rib and breastbone fractures, and older patients' bones are more fragile. With a sensor, the app can train control: deep enough, and not too deep.
     - Wording to keep: do not say the app prevents broken ribs, and do not say older adults need shallower compressions. The adult depth target is the same at every age.
-    - Also: a nurse-educator view of a unit's drills over time, validation against a feedback manikin, review by a CPR instructor, and a code-team mode with more roles.
+    - Also: validation against a feedback manikin, review by a CPR instructor, a code-team mode with more roles, and unit-wide history for nurse educators across devices. Today the educator view shows only drills saved in one browser.
   - **Prepared answers** to the questions judges are most likely to ask:
     - "How do you know it is right?"
     - "Why not measure depth?"
@@ -62,6 +63,7 @@ All three are Markdown files in `docs/`. Write them from what the app actually d
     - Compressor 2 finishes.
     - The results screen: team score, compression fraction, the switch pause, and compressor 1's slipping time.
     - The team debrief.
+    - If the educator view is on `main`, ten seconds on `/educator.html`: "this is what the nurse educator sees".
     - Then invite two judges to try.
   - What to do if the camera fails (`?video=/demo.mp4`), and if everything fails (`?sim=1&fatigue=1&turnSeconds=30`).
   - A checklist for the five minutes before presenting.

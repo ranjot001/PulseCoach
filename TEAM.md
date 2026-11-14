@@ -42,11 +42,11 @@ The first two hours went to the solo coach, which is built. From about 1:45 the 
 | Clock | Track A | Track B | Track C |
 |---|---|---|---|
 | 0:00 to 1:45 | `00`, `A1` to `A3` (done) | `B1` to `B4` (done) | `C1`, `C2` (done) |
-| 1:45 to 2:00 | Pull the new plan. Ship `A1` to `A3` | Pull the new plan. Start `B5` | Pull the new plan. Ship `C2` |
+| 1:45 to 2:00 | Pull the new plan. Start `A4` | Pull the new plan. Start `B5` | Pull the new plan. Ship `C2` |
 | **2:00** | **Sync 1.** Everyone ships. First full run with the real camera. | | |
-| 2:00 to 3:15 | `A4`, then `A5` | `B5`, then `B6` | `C3`, then `C4`, start `C5` |
+| 2:00 to 3:15 | `A4` (ship `A1` to `A4` together), then `A5` | `B5`, then `B6` | `C3`, then `C4`, then `C5` |
 | **3:15** | **Sync 2.** The relay drill is ready to demo. | | |
-| 3:15 to 4:00 | `A6`, tune the `FATIGUE_*` values on different people | Fixes from the user test | User test with five people, results into the pitch |
+| 3:15 to 4:00 | `A6`, `A7`, tune the `FATIGUE_*` values on different people | `B7`, then `B8`, `B9` | User test with five people, results into the pitch, then `C6` |
 | **4:00** | **Feature freeze.** Only fixes after this. | | |
 | 4:00 to 5:15 | Backup relay video, offline run-through | Big-screen check, demo run-throughs | Check the public link, final pitch |
 | 5:15 to 6:00 | Rehearse the pitch three times together, then submit | | |
@@ -58,6 +58,7 @@ The first two hours went to the solo coach, which is built. From about 1:45 the 
 - **Say it out loud.** If a task is taking twice its time budget, tell the team. Someone may be able to unblock you in a minute.
 - **Sync points are for everyone.** At 2:00 and 2:30, stop, ship, pull, and run the app together on one laptop.
 - **Nothing new after 4:00.** A feature that is not finished by then is left out of the demo.
+- **One look.** Every screen follows `tasks/design/relay-mock.png`. Open it before you build anything a judge will see.
 
 ## Setting up your laptop
 
