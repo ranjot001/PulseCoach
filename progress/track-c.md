@@ -103,3 +103,28 @@
 **Human checks still to do**
 - Open `/dev/debrief.html` and press the three relay buttons. Each should read like a short post-code debrief and match the sample's numbers.
 - With a key in `.env.local`, the AI text replaces the quick tips for a relay sample.
+
+## C5: Pitch kit and user test
+
+**Built** (all in `docs/`):
+- `pitch.md`: a three-minute script in five parts with times. The spoken lines (in quote blocks) come to 429 words. Every figure is one from the task with its source, or a `[RESULT: …]` blank. Prepared answers follow for the five likely judge questions.
+- `demo-script.md`: roles (C presents; B is compressor 1 and drives; A is compressor 2, waiting out of view), the step order, backups (`?video=/demo.mp4`, then `?sim=1&fatigue=1&turnSeconds=30`) and a five-minute checklist.
+- `user-test.md`: five people, about 3 minutes each at `/?turns=1&turnSeconds=90`, with a consent line, a results table, an optional pairs part, a summary line and an honesty note.
+
+**Config values changed**: none.
+
+**Could not confirm in the code on `main`** (each is planned in a task file; the demo script lists them under "Not on `main` yet"):
+- Relay drill, `?turns=`, `?turnSeconds=`, switch overlay and rhythm-check voice: B5.
+- Relay results (compression fraction, switch pause, slipping time): B6.
+- Slipping detection and `&fatigue=1`: A5. The "own first seconds" baseline comes from `FATIGUE_BASELINE_MS` in `CLAUDE.md`.
+- `?video=` and the camera-based setup check: A6. The home-screen setup checklist itself is on `main` (B4).
+- Blood-flow meter: B9, the first extra to cut. The pitch says to drop that sentence if B9 isn't built.
+- Educator view: C6.
+- Team debrief: C4, in PR #2.
+
+Confirmed on `main` or `track-a`: the setup checklist and its labels (B4), the Space and M shortcuts (B4), the metronome and voice (B1, B2), `?sim=1` (A2 on `track-a`), and quick tips offline (C1 to C3).
+
+**Human checks still to do**
+- Read the pitch aloud once with a timer.
+- Once B5 and A5 are on `main`, run the user test with five people and fill in the table.
+- Put the real results into the pitch's evidence section, then ask Claude to tighten it around them.
