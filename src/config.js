@@ -39,6 +39,22 @@ export const config = {
   COUNTDOWN_SECONDS: 3,
   LEADERBOARD_SIZE: 10,
   NAME_MAX_CHARS: 12,
+  // Relay drill (tasks B5 and B6)
+  DRILL_TURNS: 2, // turns in one drill; compressors alternate 1, 2, 1, 2
+  DRILL_TURN_SECONDS: 40, // the guideline is 120; shorter so the demo fits in a pitch
+  MIN_TURN_SECONDS: 15, // no early switch before this
+  EARLY_SWITCH_MS: 3000, // slipping must last this long before the app calls the switch
+  RHYTHM_CHECK_MS: 3000, // simulated monitor analysis at each switch
+  PAUSE_MIN_MS: 1500, // a gap between compressions longer than this is hands-off time
+  PAUSE_WARN_SEC: 5, PAUSE_MAX_SEC: 10,
+  CCF_MIN: 60, CCF_TARGET: 80, // compression fraction: floor and target, in percent
+  RELAY_WEIGHTS: { technique: 60, handsOff: 40 },
+  HISTORY_SIZE: 50, // saved drills kept in the history (Contract 4)
+  // Flow meter (task B9): a teaching picture, not a measurement
+  FLOW_RISE: 0.12, // each good compression closes this share of the gap to full
+  FLOW_POOR_FACTOR: 0.5, // a poor compression counts this much
+  FLOW_HALF_LIFE_MS: 2500, // the flow meter halves this fast when compressions stop
+  FLOW_WARN: 50, FLOW_BAD: 25, // meter colour limits
 
   // ─── Track C · Debrief and launch ──────────────────────────────────────
   DEBRIEF_TIMEOUT_MS: 6000,
