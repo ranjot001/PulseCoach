@@ -165,3 +165,88 @@ describe('rate number size', () => {
     expect(block).toMatch(/line-height:\s*1;/);
   });
 });
+
+import { slipView, pauseStatus, switchMessage, createSwitchOverlay } from '../src/ui/hud.js';
+
+describe('relay HUD', () => {
+  it('slipping chip names the signs in plain words, hidden when not slipping or fatigue is missing', () => {
+    expect(slipView({ slipping: true, signs: ['shallower', 'slower', 'elbows'] })).toEqual({ visible: true, text: 'Slipping: smaller pushes, slower, elbows bending' });
+    expect(slipView({ slipping: true, signs: [] })).toEqual({ visible: true, text: 'Slipping' });
+    expect(slipView({ slipping: false, signs: [] }).visible).toBe(false);
+    expect(slipView(undefined).visible).toBe(false);
+  });
+
+  it('pause timer is green, amber after PAUSE_WARN_SEC, red after PAUSE_MAX_SEC', () => {
+    expect(pauseStatus(0)).toBe('good');
+    expect(pauseStatus(config.PAUSE_WARN_SEC - 0.1)).toBe('good');
+    expect(pauseStatus(config.PAUSE_WARN_SEC)).toBe('warn');
+    expect(pauseStatus(config.PAUSE_MAX_SEC)).toBe('bad');
+  });
+
+  it('switch overlay shows the pause with one decimal and the right line', () => {
+    expect(switchMessage({ phase: 'rhythmCheck', compressor: 2 })).toBe('Rhythm check: hands off');
+    expect(switchMessage({ phase: 'resume', compressor: 2 })).toBe('Switch! Compressor 2, start now');
+    const root = document.createElement('div');
+    const overlay = createSwitchOverlay(root);
+    expect(root.hidden).toBe(true);
+    overlay.update({ phase: 'resume', compressor: 1, pauseSec: 6.25 });
+    expect(root.hidden).toBe(false);
+    expect(root.querySelector('.switch-timer').textContent).toBe('6.3s');
+    expect(root.querySelector('.switch-timer').classList.contains('status-warn')).toBe(true);
+    overlay.update({ phase: 'compressing', pauseSec: 0 });
+    expect(root.hidden).toBe(true);
+  });
+
+  it('the pause timer is at least 160 px tall at any window size', () => {
+    const css = readFileSync(resolve(import.meta.dirname, '../src/styles.css'), 'utf8');
+    const block = css.match(/\.switch-timer\s*\{([^}]*)\}/)[1];
+    const [, min] = block.match(/font-size:\s*clamp\((\d+)px/);
+    expect(Number(min)).toBeGreaterThanOrEqual(160);
+    expect(block).toMatch(/line-height:\s*1;/);
+  });
+});
+
+import { flowStatus, chestStatus, createFlowMeter } from '../src/ui/hud.js';
+
+describe('flow meter and live On the chest', () => {
+  it('meter colour follows FLOW_WARN and FLOW_BAD', () => {
+    expect(flowStatus(config.FLOW_WARN)).toBe('good');
+    expect(flowStatus(config.FLOW_WARN - 0.1)).toBe('warn');
+    expect(flowStatus(config.FLOW_BAD)).toBe('warn');
+    expect(flowStatus(config.FLOW_BAD - 0.1)).toBe('bad');
+    const m = createFlowMeter();
+    m.set(80);
+    expect(m.root.classList.contains('status-good')).toBe(true);
+    m.set(30);
+    expect(m.root.classList.contains('status-warn')).toBe(true);
+    m.set(10);
+    expect(m.root.classList.contains('status-bad')).toBe(true);
+    m.set(140);
+    expect(m.root.dataset.value).toBe('100');
+  });
+
+  it('"illustration, not a measurement" is on the drill screen and the switch overlay', () => {
+    const hudRoot = document.createElement('div');
+    createHud(hudRoot);
+    expect(hudRoot.querySelector('.hud-flow .flow-note').textContent).toBe('illustration, not a measurement');
+    const overlayRoot = document.createElement('div');
+    createSwitchOverlay(overlayRoot);
+    expect(overlayRoot.querySelector('.switch-flow .flow-note').textContent).toBe('illustration, not a measurement');
+  });
+
+  it('On the chest card shows the percentage with the results colours, and hides for solo', () => {
+    const root = document.createElement('div');
+    const hud = createHud(root);
+    const card = root.querySelector('.hud-chest');
+    expect(card.hidden).toBe(true);
+    hud.setChest(85);
+    expect(card.hidden).toBe(false);
+    expect(root.querySelector('.hud-chest-number').textContent).toBe('85%');
+    expect(card.classList.contains('status-good')).toBe(true);
+    hud.setChest(70);
+    expect(card.classList.contains('status-warn')).toBe(true);
+    hud.setChest(null);
+    expect(card.hidden).toBe(true);
+    expect([80, 79, 60, 59].map((p) => chestStatus(p))).toEqual(['good', 'warn', 'warn', 'bad']);
+  });
+});

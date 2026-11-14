@@ -40,13 +40,19 @@
         <button type="button" data-sample="goodStats">Good session</button>
         <button type="button" data-sample="slowStats">Slow session</button>
         <button type="button" data-sample="sloppyStats">Sloppy session</button>
+        <button type="button" data-sample="goodRelay">Good relay</button>
+        <button type="button" data-sample="slowSwitchRelay">Slow-switch relay</button>
+        <button type="button" data-sample="fadingRelay">Fading relay</button>
       </div>
       <div id="card"></div>
       <pre id="sample"></pre>
     </main>
     <script type="module">
       import { renderDebriefCard } from '/src/debrief/card.js';
-      import { allStats } from '/tests/fixtures/stats.js';
+      import { allStats as soloStats } from '/tests/fixtures/stats.js';
+      import { allRelayStats } from '/tests/fixtures/relayStats.js';
+
+      const allStats = { ...soloStats, ...allRelayStats };
 
       const card = document.getElementById('card');
       const sample = document.getElementById('sample');

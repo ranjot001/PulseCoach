@@ -13,18 +13,26 @@
   <body>
     <div class="app">
       <header class="topbar">
-        <h1 id="title" class="brand">PulseCoach</h1>
-        <div id="timer" class="timer" hidden></div>
+        <div class="brand">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <rect width="32" height="32" rx="8" style="fill: var(--surface)" />
+            <path d="M3 17h6l3-8 5 15 4-11 2 4h6" style="fill: none; stroke: var(--good); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round" />
+          </svg>
+          <h1 id="title" class="brand-name">PulseCoach</h1>
+        </div>
+        <div id="relay-label" class="relay-label" hidden></div>
         <div class="controls">
+          <div id="timer" class="timer num" hidden></div>
           <span id="beat-dot" class="beat-dot" aria-hidden="true"></span>
-          <button id="metronome-toggle" class="btn" type="button" aria-pressed="false">Metronome off</button>
-          <button id="voice-toggle" class="btn" type="button" aria-pressed="false">Voice on</button>
+          <button id="metronome-toggle" class="btn btn-ghost" type="button" aria-pressed="false">Beat off · B</button>
+          <button id="voice-toggle" class="btn btn-ghost" type="button" aria-pressed="false">Voice on · M</button>
         </div>
       </header>
       <main id="screen-home" class="screen home"></main>
       <main id="screen-session" class="screen practice" hidden>
         <div id="stage" class="stage-panel"></div>
         <div id="hud" class="hud"></div>
+        <div id="switch" class="switch-overlay" role="status" aria-live="assertive" hidden></div>
         <div id="countdown" class="countdown" hidden>
           <div id="countdown-number" class="countdown-number"></div>
         </div>

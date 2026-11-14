@@ -66,3 +66,45 @@ describe('validateStats', () => {
     expect(clean.sneaky).toBeUndefined();
   });
 });
+
+import { buildPrompt } from '../src/debrief/schema.js';
+import { sloppyStats as sloppy, goodStats as good } from './fixtures/stats.js';
+
+describe('buildPrompt', () => {
+  it('returns a system and a user string', () => {
+    const p = buildPrompt(good);
+    expect(typeof p.system).toBe('string');
+    expect(typeof p.user).toBe('string');
+  });
+
+  it('puts the adult targets and the rules in the system prompt', () => {
+    const { system } = buildPrompt(good);
+    expect(system).toMatch(/CPR instructor/);
+    expect(system).toMatch(/hands-only/);
+    expect(system).toContain('100 to 120');
+    expect(system).toContain('5 to 6 cm');
+    expect(system).toMatch(/full chest recoil/);
+    expect(system).toMatch(/elbows/);
+    expect(system).toMatch(/shoulders directly over the hands/);
+    expect(system).toMatch(/two or three sentences/);
+    expect(system).toMatch(/under 70 words/);
+    expect(system).toMatch(/"you"/);
+    expect(system).toMatch(/estimated depth/);
+    expect(system).toMatch(/no medical advice/i);
+  });
+
+  it("includes every one of the session's numbers in the user prompt", () => {
+    const { user } = buildPrompt(sloppy);
+    for (const value of ['30 seconds', 'Compressions: 61', '124 per minute', '41%', '35%', '48%', '52%', '4.2 cm', '44 out of 100', 'Keep practising']) {
+      expect(user).toContain(value);
+    }
+    expect(user).toMatch(/speeding up/);
+    expect(user).toContain('100 to 120');
+  });
+
+  it('says depth was not measured when avgDepthCm is null', () => {
+    const { user } = buildPrompt(good);
+    expect(user).toMatch(/not measured/);
+    expect(user).not.toMatch(/\d cm/);
+  });
+});

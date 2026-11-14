@@ -105,3 +105,114 @@ export function summarise(events, durationSec, config = defaultConfig) {
     grade: gradeFor(score, cfg),
   };
 }
+
+// ─── Relay stats (Contract 2) ─────────────────────────────────────────────
+
+const round1 = (x) => Math.round(x * 10) / 10;
+
+function drillEvents(drill) {
+  return (drill?.turns || []).flatMap((t) => t.events || []).map((e) => e.at).filter(Number.isFinite).sort((a, b) => a - b);
+}
+
+/**
+ * Hands-off gaps as { startMs, endMs } on the page clock: before the first compression, every gap
+ * longer than PAUSE_MIN_MS, and after the last compression until the drill ends.
+ */
+export function handsOffGaps(drill, cfg = defaultConfig) {
+  const start = drill?.startedAt ?? 0;
+  const end = drill?.endedAt ?? start;
+  const times = drillEvents(drill);
+  if (times.length === 0) return end > start ? [{ startMs: start, endMs: end }] : [];
+  const gaps = [];
+  if (times[0] > start) gaps.push({ startMs: start, endMs: times[0] });
+  for (let i = 1; i < times.length; i++) {
+    if (times[i] - times[i - 1] > cfg.PAUSE_MIN_MS) gaps.push({ startMs: times[i - 1], endMs: times[i] });
+  }
+  if (end > times[times.length - 1]) gaps.push({ startMs: times[times.length - 1], endMs: end });
+  return gaps;
+}
+
+/** The length in ms of each hands-off gap. */
+export function handsOffPieces(drill, cfg = defaultConfig) {
+  return handsOffGaps(drill, cfg).map((g) => g.endMs - g.startMs);
+}
+
+/** Percentage of the drill that was not hands-off; 0 with no compressions. Same rule live and in the result. */
+export function compressionFractionOf(drill, cfg = defaultConfig) {
+  const durationMs = Math.max(0, (drill?.endedAt ?? 0) - (drill?.startedAt ?? 0));
+  if (durationMs === 0 || drillEvents(drill).length === 0) return 0;
+  const handsOffMs = handsOffPieces(drill, cfg).reduce((a, b) => a + b, 0);
+  return Math.round(Math.max(0, (durationMs - handsOffMs) / durationMs) * 100);
+}
+
+/** Each switch: seconds from the last compression of one turn to the first of the next, and whether the app called it early. */
+export function switchPauses(drill) {
+  const turns = drill?.turns || [];
+  const out = [];
+  for (let i = 0; i < turns.length - 1; i++) {
+    const before = turns[i].events || [];
+    const after = turns[i + 1].events || [];
+    if (before.length === 0 || after.length === 0) continue;
+    out.push({ sec: round1((after[0].at - before[before.length - 1].at) / 1000), early: Boolean(turns[i].early) });
+  }
+  return out;
+}
+
+/** 0 at or below CCF_MIN, 100 at or above CCF_TARGET, linear between; minus 20 per pause over PAUSE_MAX_SEC. */
+export function handsOffScore(compressionFraction, pausesSec, cfg = defaultConfig) {
+  const span = cfg.CCF_TARGET - cfg.CCF_MIN;
+  const ccfScore = Math.min(100, Math.max(0, ((compressionFraction - cfg.CCF_MIN) / span) * 100));
+  const longOnes = pausesSec.filter((s) => s > cfg.PAUSE_MAX_SEC).length;
+  return Math.max(0, ccfScore - 20 * longOnes);
+}
+
+/**
+ * @param {object} drill getDrill() from src/lib/relay.js
+ * @returns Contract 2 relay stats
+ */
+export function summariseRelay(drill, config = defaultConfig) {
+  const cfg = config;
+  const turnsIn = drill?.turns || [];
+  const durationMs = Math.max(0, (drill?.endedAt ?? 0) - (drill?.startedAt ?? 0));
+  const durationSec = Math.round(durationMs / 1000);
+
+  const turns = turnsIn.map((t) => {
+    const turnSec = t.startAt !== null && t.endAt !== null ? Math.round((t.endAt - t.startAt) / 1000) : 0;
+    return {
+      compressor: t.compressor,
+      ...summarise(t.events || [], turnSec, cfg),
+      slippedAtSec: t.slippedAt === null || t.slippedAt === undefined ? null : Math.round(t.slippedAt),
+      signs: [...(t.signs || [])],
+    };
+  });
+
+  const compressions = turns.reduce((a, t) => a + t.compressions, 0);
+  const pieces = handsOffPieces(drill, cfg).map((ms) => ms / 1000);
+  const handsOff = pieces.reduce((a, b) => a + b, 0);
+  const compressionFraction = compressions > 0 ? compressionFractionOf(drill, cfg) : 0;
+
+  const switches = Math.max(0, turnsIn.length - 1);
+  const earlySwitches = turnsIn.filter((t) => t.early).length;
+  const switchSecs = switchPauses(drill).map((s) => s.sec);
+  const avgSwitchSec = switchSecs.length ? round1(mean(switchSecs)) : null;
+  const longestPauseSec = pieces.length ? round1(Math.max(...pieces)) : 0;
+
+  const technique = compressions > 0 ? turns.reduce((a, t) => a + t.score * t.compressions, 0) / compressions : 0;
+  const handsOffPart = compressions > 0 ? handsOffScore(compressionFraction, pieces, cfg) : 0;
+  const w = cfg.RELAY_WEIGHTS;
+  const score = Math.round((technique * w.technique + handsOffPart * w.handsOff) / (w.technique + w.handsOff));
+
+  return {
+    mode: 'relay',
+    durationSec,
+    compressions,
+    compressionFraction,
+    switches,
+    earlySwitches,
+    avgSwitchSec,
+    longestPauseSec,
+    score,
+    grade: gradeFor(score, cfg),
+    turns,
+  };
+}

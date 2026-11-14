@@ -1,7 +1,7 @@
 // Builds the video + skeleton canvas (+ debug chart) inside the engine's stage container.
 import './stage.css';
 import { drawPose } from './overlay.js';
-import { createChart } from './chart.js';
+import { createChart, canvasSupported } from './chart.js';
 import { createPushBars } from './pushBars.js';
 import { config } from '../config.js';
 
@@ -51,7 +51,7 @@ export function createStage(container, { simulated = false, mirror = !simulated 
       if (!ctxTried) {
         ctxTried = true;
         try {
-          ctx = canvas.getContext('2d');
+          ctx = canvasSupported() ? canvas.getContext('2d') : null;
         } catch {
           ctx = null;
         }

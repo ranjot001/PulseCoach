@@ -7,7 +7,7 @@ import { config } from '../src/config.js';
 
 const visible = (id) => !document.getElementById(id).hidden;
 
-describe('practice loop with ?sim=1', () => {
+describe('solo practice loop with ?sim=1', () => {
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] });
     const html = readFileSync(resolve(import.meta.dirname, '../index.html'), 'utf8');
@@ -28,7 +28,7 @@ describe('practice loop with ?sim=1', () => {
     window.addEventListener('beforeunload', () => loads++);
 
     expect(visible('screen-home')).toBe(true);
-    expect(document.querySelector('#screen-home').textContent).toContain('Practice for adult hands-only CPR');
+    expect(document.querySelector('#screen-home').textContent).toContain('CPR is a relay,not a sprint.');
     // Debug output is hidden until D is pressed (checked on the scaffold's fake engine panel when present).
     const debugLine = document.querySelector('.fake-engine-panel > div:nth-child(2)');
     if (debugLine) {
@@ -39,7 +39,7 @@ describe('practice loop with ?sim=1', () => {
       expect(debugLine.hidden).toBe(true);
     }
     await vi.advanceTimersByTimeAsync(1500); // A6: let the setup check see a second of good frames
-    document.querySelector('#screen-home .btn-primary').click();
+    document.querySelector('#screen-home [data-action="solo"]').click();
 
     expect(visible('countdown')).toBe(true);
     expect(document.getElementById('countdown-number').textContent).toBe('3');
@@ -77,7 +77,7 @@ describe('practice loop with ?sim=1', () => {
     expect(visible('screen-results')).toBe(true);
 
     // Try again button also restarts.
-    document.querySelector('#screen-results .btn-primary').click();
+    document.querySelector('#screen-results [data-action="retry"]').click();
     expect(visible('countdown')).toBe(true);
     expect(loads).toBe(0);
   });

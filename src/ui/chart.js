@@ -1,5 +1,8 @@
 // Light canvas line chart of the detrended motion signal (last few seconds).
 
+// jsdom (the test page) has no canvas and logs an error for every getContext() call.
+export const canvasSupported = () => !/jsdom/i.test(globalThis.navigator?.userAgent ?? '');
+
 export function createChart(canvas, { spanMs = 6000, minRange = 0.06 } = {}) {
   const points = [];
   let ctx = null;
@@ -9,7 +12,7 @@ export function createChart(canvas, { spanMs = 6000, minRange = 0.06 } = {}) {
     if (!ctxTried) {
       ctxTried = true;
       try {
-        ctx = canvas.getContext('2d');
+        ctx = canvasSupported() ? canvas.getContext('2d') : null;
       } catch {
         ctx = null;
       }

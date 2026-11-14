@@ -92,3 +92,13 @@
 - Not checked in a browser: no browser was available to me. Engine cost is unchanged (36 simulated seconds: about 50 ms of engine work, was 41 ms).
 - **For Track B:** `tests/main.test.js` runs a whole 36-simulated-second session inside the default 5 s test timeout. It takes about 0.3 s alone and 1.8–2.8 s in the full suite, but on a busy laptop (Chrome running the live app at 220% CPU, load average 12–23) it timed out 2 times in 7 full runs. Suggest giving that one test a longer timeout, e.g. `it('runs Start → …', async () => { … }, 20000)`.
 - Human checks still to do: start a drill with the camera; bars grey for 10 s, then green; smaller pushes → amber bars below the dashed line. From 3 m: green and amber bars are distinguishable and the shrinking is visible.
+
+## Merge of `main` (Track B up to B9, Track C up to C6) into `track-a`
+
+- Merged `origin/main` (PRs #2 and #3) into `track-a`. One git conflict, in `tests/main.test.js`: kept Track B's new solo button selector and the A6 wait for the setup check.
+- **Track B test files updated for the real engine, with the person's OK** (they were written against the scaffold's fake engine). No behaviour checks removed; only timings:
+  - `tests/main-relay-engine.test.js`: wait 1.5 s for the setup check before pressing Start; turn 1 ends about 21.6 s after Go (the real first compression is about 1.6 s after Go, not 0.5 s), so the switch is checked at 22 s instead of 21 s.
+  - `tests/main-relay.test.js`: the same setup wait; address `&swap=0` so the simulated compressor keeps pushing through the rhythm check (which is what the test checks); turn clock reads `12s` at 10 s; switch checked at 22 s instead of 20.7 s.
+- Track A fix found by the merge: the stage and debug chart no longer call `canvas.getContext()` under jsdom, which logged a console error that Track B's relay test checks for.
+- End-to-end check of the merged app on the real engine (simulator): a two-turn relay runs, the real `markTurn()` gives a 6.0 s switch pause, results show score 99, compression fraction 83%, one switch, two turns. With `?sim=1&fatigue=1` the slipping chip shows at 32 s and the app calls the early switch at 35 s.
+- `npm run check`: 453 tests pass across all tracks, three runs in a row.
