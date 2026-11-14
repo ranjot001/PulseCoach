@@ -22,7 +22,7 @@ describe('leaderboard store', () => {
     const reloaded = createLeaderboard(storage).load();
     expect(reloaded).toHaveLength(10);
     expect(reloaded.map((e) => e.score)).toEqual([99, 95, 88, 85, 77, 71, 63, 50, 40, 30]);
-    expect(reloaded[0]).toEqual({ name: 'p7', score: 99, avgRate: 110, date: 'd7' });
+    expect(reloaded[0]).toEqual({ name: 'p7', score: 99, avgRate: 110, date: 'd7', mode: 'solo' });
     expect(JSON.parse(storage.getItem(STORAGE_KEY))).toHaveLength(10);
   });
 
@@ -71,5 +71,24 @@ describe('renderLeaderboard', () => {
     answer = true;
     btn.click();
     expect(resets).toBe(1);
+  });
+});
+
+describe('leaderboard modes', () => {
+  it('relay entries show a Relay tag and the compression fraction; old entries without a mode count as solo', () => {
+    const storage = fakeStorage();
+    storage.setItem(STORAGE_KEY, JSON.stringify([{ name: 'Old', score: 70, avgRate: 105, date: 'x' }]));
+    const lb = createLeaderboard(storage);
+    const entries = lb.add({ name: 'Team A', score: 90, avgRate: 111, mode: 'relay', compressionFraction: 92 });
+    expect(entries[0]).toMatchObject({ name: 'Team A', mode: 'relay', compressionFraction: 92 });
+    const root = document.createElement('div');
+    renderLeaderboard(root, { entries });
+    const [relay, old] = root.querySelectorAll('li');
+    expect(relay.dataset.mode).toBe('relay');
+    expect(relay.querySelector('.lb-tag').textContent).toBe('Relay');
+    expect(relay.querySelector('.lb-rate').textContent).toBe('CCF 92%');
+    expect(old.dataset.mode).toBe('solo');
+    expect(old.querySelector('.lb-tag').textContent).toBe('');
+    expect(old.querySelector('.lb-rate').textContent).toBe('105/min');
   });
 });

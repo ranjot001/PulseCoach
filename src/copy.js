@@ -90,6 +90,8 @@ export const LEADERBOARD = {
   confirmReset: 'Clear every score on the leaderboard?',
   anonymous: 'Anonymous',
   perMin: '/min',
+  relayTag: 'Relay',
+  ccf: (pct) => `CCF ${pct}%`,
 };
 
 export const RELAY = {
@@ -107,6 +109,27 @@ export const RELAY = {
   pauseValue: (sec) => `${sec.toFixed(1)}s`,
   slipping: 'Slipping',
   signs: { shallower: 'smaller pushes', slower: 'slower', elbows: 'elbows bending' },
+};
+
+export const RELAY_RESULTS = {
+  teamScore: 'Team score',
+  ccfHeading: 'Compression fraction',
+  ccfHint: (target) => `Hands on the chest · target ${target}%`,
+  ccfValue: (pct) => `${pct}%`,
+  switchesHeading: 'Switches',
+  switchLabel: (n) => `Switch ${n}`,
+  switchAverage: 'Average switch',
+  noSwitches: 'No switches',
+  pauseValue: (sec) => `${sec.toFixed(1)} s`,
+  earlyTag: 'early switch',
+  longestPause: (sec) => `Longest pause ${sec.toFixed(1)} s`,
+  compressor: (n) => `Compressor ${n}`,
+  turnStats: (compressions, rate) => `${compressions} compressions · avg ${rate}/min`,
+  turnScore: (score) => `Score ${score}`,
+  slippedAt: (time, signs) => (signs ? `Started slipping at ${time}: ${signs}` : `Started slipping at ${time}`),
+  heldForm: 'Held form for the whole turn',
+  teamNameLabel: 'Team name for the leaderboard',
+  teamNamePlaceholder: 'Team name',
 };
 
 export const SETUP = {
@@ -154,5 +177,5 @@ export const ERRORS = {
   runSimulator: 'Run simulator',
 };
 
-export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY };
+export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY, RELAY_RESULTS };
 export default copy;

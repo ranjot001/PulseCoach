@@ -30,7 +30,7 @@ describe('relay drill with ?sim=1&turnSeconds=20', () => {
     delete globalThis.SpeechSynthesisUtterance;
   });
 
-  it('runs two turns with one rhythm check, then the results screen', async () => {
+  it('runs two turns with one rhythm check, then the relay results screen', async () => {
     const errors = vi.spyOn(console, 'error');
     const home = document.querySelector('#screen-home .btn-primary');
     expect(home.textContent).toBe('Start relay drill');
@@ -63,6 +63,20 @@ describe('relay drill with ?sim=1&turnSeconds=20', () => {
     expect(spoken.filter((t) => t === RELAY.prompts.rhythmCheck)).toHaveLength(1);
     expect(spoken).not.toContain(RELAY.prompts.switchEarly);
     expect(Number(document.querySelector('.results-score-number').textContent)).toBeGreaterThan(0);
+    // The relay results screen: compression fraction, one switch, one column per turn.
+    expect(document.querySelector('#screen-results .relay-ccf')).not.toBeNull();
+    expect(document.querySelectorAll('#screen-results .relay-switch')).toHaveLength(1);
+    expect(document.querySelectorAll('#screen-results .relay-turn')).toHaveLength(2);
+    expect(Number(document.querySelector('.relay-ccf-number').textContent.replace('%', ''))).toBeGreaterThan(80);
+
+    // A team name with markup is saved and shown as literal text, tagged Relay.
+    document.querySelector('#screen-results .results-name').value = '<b>x</b>';
+    document.querySelector('#screen-results .results-save').dispatchEvent(new Event('submit', { cancelable: true }));
+    const li = document.querySelector('#screen-results .leaderboard-list li');
+    expect(li.querySelector('.lb-name').textContent).toBe('<b>x</b>');
+    expect(li.querySelector('b')).toBeNull();
+    expect(li.querySelector('.lb-tag').textContent).toBe('Relay');
+    expect(JSON.parse(localStorage.getItem('pulsecoach.leaderboard.v1'))[0]).toMatchObject({ name: '<b>x</b>', mode: 'relay' });
     expect(errors).not.toHaveBeenCalled();
   });
 });

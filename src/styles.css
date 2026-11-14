@@ -737,3 +737,113 @@ body {
   font-size: clamp(2.2rem, 7vh, 4rem);
   font-weight: 800;
 }
+
+/* ─── B6: relay results ───────────────────────────────────────────────── */
+
+.results.relay-results {
+  grid-template-columns: 1fr 1.15fr 0.95fr;
+  gap: 1.2rem;
+}
+
+.relay-main,
+.relay-middle {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.relay-results .results-score-number { font-size: clamp(5rem, 16vh, 8rem); }
+
+.relay-ccf-number {
+  font-size: clamp(3rem, 9vh, 4.5rem);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--status);
+  font-variant-numeric: tabular-nums;
+}
+
+.relay-ccf-track {
+  position: relative;
+  height: 1.3rem;
+  margin-top: 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 30%, transparent);
+}
+
+.relay-ccf-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--status);
+}
+
+.relay-ccf-target {
+  position: absolute;
+  top: -0.35rem;
+  bottom: -0.35rem;
+  width: 4px;
+  margin-left: -2px;
+  background: var(--fg);
+}
+
+.relay-ccf-hint,
+.relay-longest,
+.relay-switch-none {
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.relay-switch {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8rem;
+  font-size: 1.3rem;
+}
+
+.relay-switch-sec {
+  font-weight: 800;
+  color: var(--status);
+  font-variant-numeric: tabular-nums;
+}
+
+.relay-early {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--warn);
+  border: 2px solid var(--warn);
+  border-radius: 999px;
+  padding: 0 0.6rem;
+}
+
+.relay-turns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.7rem;
+}
+
+.relay-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.7rem 0.9rem;
+  border: 2px solid color-mix(in srgb, var(--muted) 45%, transparent);
+  border-radius: 14px;
+}
+
+.relay-turn-title { font-size: 1.4rem; font-weight: 800; }
+
+.relay-turn-stats { font-size: 1rem; color: var(--muted); }
+
+.relay-turn-score { font-size: 1.4rem; font-weight: 800; color: var(--status); }
+
+.relay-turn-slip { font-size: 1.05rem; font-weight: 700; color: var(--status); }
+
+.relay-middle .results-debrief { min-height: 0; overflow: hidden; }
+
+.lb-tag {
+  width: 3.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+}

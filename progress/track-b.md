@@ -117,3 +117,24 @@
 - Once A5 is on `main`: `?sim=1&fatigue=1` calls "Your compressions are dropping off. Switch now." partway through turn 1.
 - With the camera: two people swap on the pillow; the pause timer stops the moment the second person starts.
 - Then say "ship it".
+
+## B6: Relay results and team score — done (2026-11-14)
+
+**Built**
+- `src/lib/score.js`: `summariseRelay(drill, config)` returns exactly the Contract 2 relay shape (keys checked against `goodRelay` and `goodRelay.turns[0]`). Per turn: `summarise(turn.events, turn seconds)` (actual seconds from first compression to turn end, so an early turn is shorter) plus `compressor`, `slippedAtSec` (rounded) and `signs`. Hands-off pieces from page-clock `at` times: before the first compression, every gap over `PAUSE_MIN_MS`, after the last compression until the drill ends; compressions during a rhythm check are not in any turn, so they do not shorten a switch pause. `switches` = turns − 1, `earlySwitches` = turns ended early, `avgSwitchSec` = mean last-to-first gap across each switch (null with no switch), `longestPauseSec` = longest hands-off piece. Team score = (compression-weighted turn scores × `RELAY_WEIGHTS.technique` + hands-off score × `RELAY_WEIGHTS.handsOff`) / total weight, where hands-off score = linear 0 at `CCF_MIN` → 100 at `CCF_TARGET`, minus 20 per hands-off piece over `PAUSE_MAX_SEC`, floored at 0. Zero compressions → all numbers finite, score 0. Helpers exported: `handsOffPieces`, `switchPauses`, `handsOffScore`.
+- `src/ui/relayResults.js`: `renderRelayResults(container, stats, { onSave, onRetry, pauses })`. Three columns: team score + grade, compression fraction (big %, bar with the 80% target marked, green/amber/red), switch pauses (green ≤ `PAUSE_WARN_SEC`, amber ≤ `PAUSE_MAX_SEC`, red above, "early switch" tag) and longest pause; one card per turn (compressions, avg rate, score, then "Started slipping at 0:24: smaller pushes, slower" in amber or "Held form for the whole turn" in green) and the debrief card; team name + Save, leaderboard, Try again (Space too).
+  - Contract 2 has only `avgSwitchSec`, not each pause, so `main.js` passes the exact list from `switchPauses(drill)`. Without that list (e.g. rendering a fixture) one switch shows exactly and several show the average.
+- Leaderboard: entries now store `mode` (`'solo'` default; old entries without one count as solo). Relay entries also store `compressionFraction` and show a "Relay" tag and "CCF 92%" in place of the rate. Same key `pulsecoach.leaderboard.v1`, names still `textContent`.
+- `src/main.js`: the drill ends with `summariseRelay` → `renderRelayResults`; relay leaderboard entries use the compression-weighted average rate.
+- Tests: relay part of `tests/score.test.js`, `tests/relayResults.test.js`, leaderboard modes in `tests/leaderboard.test.js`, and `tests/main-relay.test.js` now ends on the relay results screen and saves a `<b>x</b>` team name as literal text with a Relay tag.
+
+**Fit at 1366×768**: not measured in a browser (none available). Built to fit: a fixed-height three-column grid with `overflow: hidden`; the tallest column is estimated at ~460 px of the ~640 px available. A very long debrief card is clipped rather than scrolling the page.
+
+**Config**: none changed.
+
+**Human checks still to do**
+- A drill in the simulator: the numbers on the results screen match what happened. Once A5 is on `main`, `?sim=1&fatigue=1`: compressor 1 shows a slipping time and an early switch.
+- Two people at the camera with one deliberately slow switch: the pause shows red and the compression fraction drops.
+- Save a team name and reload: still on the leaderboard with a Relay tag.
+- Check at 1366×768 that the relay results do not scroll.
+- Then say "ship it".

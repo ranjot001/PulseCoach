@@ -27,6 +27,11 @@ export function rankEntries(entries, cfg = config) {
     .slice(0, cfg.LEADERBOARD_SIZE);
 }
 
+/** Old entries have no mode: they count as solo. */
+export function entryMode(e) {
+  return e && e.mode === 'relay' ? 'relay' : 'solo';
+}
+
 function isEntry(e) {
   return e && typeof e.name === 'string' && Number.isFinite(e.score);
 }
@@ -56,9 +61,10 @@ export function createLeaderboard(storage = safeStorage(), cfg = config) {
 
   return {
     load,
-    /** Adds { name, score, avgRate, date } and returns the new top list. */
-    add({ name, score, avgRate, date = new Date().toISOString() }) {
-      const entry = { name: cleanName(name, cfg), score: Math.round(Number(score) || 0), avgRate: Math.round(Number(avgRate) || 0), date };
+    /** Adds { name, score, avgRate, date, mode, compressionFraction? } and returns the new top list. */
+    add({ name, score, avgRate, date = new Date().toISOString(), mode = 'solo', compressionFraction }) {
+      const entry = { name: cleanName(name, cfg), score: Math.round(Number(score) || 0), avgRate: Math.round(Number(avgRate) || 0), date, mode: entryMode({ mode }) };
+      if (entry.mode === 'relay') entry.compressionFraction = Math.round(Number(compressionFraction) || 0);
       const entries = rankEntries([...load(), entry], cfg);
       save(entries);
       return entries;
@@ -115,13 +121,18 @@ export function renderLeaderboard(container, { entries, onReset, confirm = (m) =
       const name = document.createElement('span');
       name.className = 'lb-name';
       name.textContent = e.name;
+      const relay = entryMode(e) === 'relay';
+      li.dataset.mode = entryMode(e);
       const rate = document.createElement('span');
       rate.className = 'lb-rate';
-      rate.textContent = `${e.avgRate}${LEADERBOARD.perMin}`;
+      rate.textContent = relay ? LEADERBOARD.ccf(e.compressionFraction ?? 0) : `${e.avgRate}${LEADERBOARD.perMin}`;
+      const tag = document.createElement('span');
+      tag.className = 'lb-tag';
+      tag.textContent = relay ? LEADERBOARD.relayTag : '';
       const score = document.createElement('span');
       score.className = 'lb-score';
       score.textContent = String(e.score);
-      li.append(name, rate, score);
+      li.append(name, tag, rate, score);
       ol.append(li);
     }
     wrap.append(ol);

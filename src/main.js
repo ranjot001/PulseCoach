@@ -6,11 +6,12 @@ import { PRODUCT_NAME, FOOTER_LINE, PRACTICE, SESSION, RELAY } from './copy.js';
 import { createHud, createSwitchOverlay } from './ui/hud.js';
 import { renderHome, renderError, shortcutAction, simulatorUrl } from './ui/home.js';
 import { renderResults } from './ui/results.js';
+import { renderRelayResults } from './ui/relayResults.js';
 import { createLeaderboard, renderLeaderboard } from './ui/leaderboard.js';
 import { createMetronome } from './audio/metronome.js';
 import { createVoice } from './audio/voice.js';
 import { createCoach } from './lib/feedback.js';
-import { summarise } from './lib/score.js';
+import { summarise, summariseRelay, switchPauses } from './lib/score.js';
 import { createRelay, drillOptions } from './lib/relay.js';
 
 document.getElementById('title').textContent = PRODUCT_NAME;
@@ -292,19 +293,33 @@ function finishSession() {
   clearTimeout(bannerTimer);
   hud.setCue('');
   switchOverlay.hide();
-  let stats;
   if (mode === 'relay') {
-    // Until B6: the solo results screen over all of the drill's compressions.
-    const drill = relay.getDrill();
-    const all = drill.turns.flatMap((t) => t.events);
-    stats = summarise(all, (drill.endedAt - drill.startedAt) / 1000, config);
-  } else {
-    stats = summarise(events, config.SESSION_SECONDS, config);
+    showRelayResults();
+    return;
   }
+  const stats = summarise(events, config.SESSION_SECONDS, config);
   show('results');
+  screens.results.classList.remove('relay-results');
   const { leaderboardSlot } = renderResults(screens.results, stats, {
     onSave(name) {
       leaderboard.add({ name, score: stats.score, avgRate: stats.avgRate });
+      drawLeaderboard(leaderboardSlot);
+    },
+    onRetry: startCountdown,
+  });
+  drawLeaderboard(leaderboardSlot);
+}
+
+function showRelayResults() {
+  const drill = relay.getDrill();
+  const stats = summariseRelay(drill, config);
+  const avgRate = stats.compressions ? Math.round(stats.turns.reduce((a, t) => a + t.avgRate * t.compressions, 0) / stats.compressions) : 0;
+  show('results');
+  screens.results.classList.add('relay-results');
+  const { leaderboardSlot } = renderRelayResults(screens.results, stats, {
+    pauses: switchPauses(drill),
+    onSave(name) {
+      leaderboard.add({ name, score: stats.score, avgRate, mode: 'relay', compressionFraction: stats.compressionFraction });
       drawLeaderboard(leaderboardSlot);
     },
     onRetry: startCountdown,
