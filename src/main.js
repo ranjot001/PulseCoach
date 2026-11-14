@@ -1,9 +1,12 @@
 // Practice screen: engine stage on the left, readouts on the right.
 import './styles.css';
 import { createEngine } from './engine.js';
+import { config } from './config.js';
 import { PRODUCT_NAME, FOOTER_LINE, PRACTICE } from './copy.js';
 import { createHud } from './ui/hud.js';
 import { createMetronome } from './audio/metronome.js';
+import { createVoice } from './audio/voice.js';
+import { createCoach } from './lib/feedback.js';
 
 document.getElementById('title').textContent = PRODUCT_NAME;
 document.getElementById('footer').textContent = FOOTER_LINE;
@@ -49,11 +52,39 @@ window.addEventListener('keydown', (e) => {
 });
 renderToggle();
 
+// ─── Voice coaching ───────────────────────────────────────────────────────
+const voice = createVoice();
+let bannerTimer = null;
+const coach = createCoach(config, {
+  speaker: voice,
+  onCue(id, text) {
+    hud.setCue(text, id === 'praise' ? 'good' : 'warn');
+    clearTimeout(bannerTimer);
+    bannerTimer = setTimeout(() => hud.setCue(''), config.CUE_BANNER_MS);
+  },
+});
+
+const voiceToggle = document.getElementById('voice-toggle');
+function renderVoiceToggle() {
+  voiceToggle.textContent = coach.muted ? PRACTICE.voiceMuted : PRACTICE.voiceOn;
+  voiceToggle.setAttribute('aria-pressed', String(coach.muted));
+  voiceToggle.classList.toggle('muted', coach.muted);
+}
+voiceToggle.addEventListener('click', () => {
+  coach.setMuted(!coach.muted);
+  voice.setMuted(coach.muted);
+  renderVoiceToggle();
+});
+renderVoiceToggle();
+
+const clock = () => (globalThis.performance ? performance.now() : Date.now());
+
 // ─── Engine ───────────────────────────────────────────────────────────────
 const engine = createEngine({
   stage: document.getElementById('stage'),
   onState(state) {
     hud.update(state);
+    coach.next(state, clock());
   },
   onCompression(event) {
     hud.compression(event);

@@ -114,7 +114,7 @@ export function createHud(root, cfg = config) {
   depthChip.hidden = true;
   chips.append(depthChip);
 
-  const cue = el('section', 'hud-cue');
+  const cue = el('section', 'hud-cue status-none');
   cue.setAttribute('aria-live', 'polite');
   const status = el('div', 'hud-status', PRACTICE.statusLoading);
 
@@ -177,8 +177,10 @@ export function createHud(root, cfg = config) {
       pulse();
       renderDepth();
     },
-    setCue(text) {
+    /** Show a coaching cue; status colours it ('warn' for a fix, 'good' for praise). */
+    setCue(text, cueStatus = 'warn') {
       cue.textContent = text || '';
+      setStatusClass(cue, text ? cueStatus : 'none');
     },
     setError(text) {
       status.textContent = text || '';

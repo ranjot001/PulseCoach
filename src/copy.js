@@ -24,7 +24,22 @@ export const PRACTICE = {
   metronomeOff: 'Metronome off',
   metronomeHint: 'Press M',
   errorPrefix: 'Camera problem',
+  voiceOn: 'Voice on',
+  voiceMuted: 'Voice muted',
 };
 
-export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE };
+// Spoken coaching cues, keyed by the ids src/lib/feedback.js returns.
+export const CUES = {
+  notVisible: 'Move back into view',
+  slow: 'Push faster',
+  fast: 'Slow down a little',
+  elbows: 'Lock your elbows',
+  position: 'Shoulders over your hands',
+  recoil: 'Let the chest come all the way up',
+  shallow: 'Push a little harder',
+  deep: 'Ease off slightly',
+  praise: 'Good pace, keep going',
+};
+
+export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES };
 export default copy;

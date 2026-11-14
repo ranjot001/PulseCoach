@@ -28,6 +28,10 @@ export const config = {
   SESSION_SECONDS: 30,
   VOICE_COOLDOWN_MS: 3500,
   VOICE_REPEAT_MS: 8000,
+  VOICE_PERSIST_MS: 1500, // a problem must last this long before it is spoken
+  PRAISE_AFTER_MS: 6000, // clean time needed before praise
+  PRAISE_REPEAT_MS: 10000, // at most one praise this often
+  CUE_BANNER_MS: 3000, // how long a cue stays on screen
   SCORE_WEIGHTS: { rate: 40, elbows: 20, alignment: 20, recoil: 20, depth: 15 },
 
   // ─── Track C · Debrief and launch ──────────────────────────────────────

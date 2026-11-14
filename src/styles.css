@@ -265,10 +265,17 @@ body {
 .hud-chip[hidden] { display: none; }
 
 .hud-cue {
-  min-height: 2.6rem;
-  font-size: 1.8rem;
-  font-weight: 700;
+  min-height: 3.4rem;
+  font-size: clamp(1.8rem, 5vh, 2.6rem);
+  font-weight: 800;
+  line-height: 1.2;
   text-align: center;
+  color: var(--status);
+}
+
+.btn.muted {
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 .hud-status {
