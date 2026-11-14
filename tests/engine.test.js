@@ -84,7 +84,7 @@ describe('engine on the simulator (?sim=1)', () => {
     engine.reset();
     engine.markRest();
     events.length = 0;
-    vi.advanceTimersByTime(30000);
+    vi.advanceTimersByTime(1000 + 30000); // after markRest() the simulated learner rests 1 s, then 30 s of compressions
     engine.stop();
     expect(Math.abs(events.length - 55)).toBeLessThanOrEqual(1);
     events.forEach((e, i) => expect(e.index).toBe(i));
@@ -120,13 +120,54 @@ describe('engine on the simulator (?sim=1)', () => {
     expect(states.at(-1).compressions).toBe(0);
   });
 
-  it('issues stay clear and form fields pass until the form checks (A4), even with bend=30&lean=25', async () => {
-    const { states, events } = await run('?sim=1&bend=30&lean=25&recoil=0.6', 3000);
-    expect(states.at(-1).issues).toEqual({ elbows: false, position: false, recoil: false, depth: null });
-    expect(events.length).toBeGreaterThan(0);
+  // A session as the app runs it: start, countdown, reset() + markRest() at "go", then practice.
+  async function practice(search, ms = 15000) {
+    const timers = fakeTimers();
+    const states = [];
+    const events = [];
+    const stage = document.createElement('div');
+    const engine = createEngine({ stage, search, timers, onState: (s) => states.push(s), onCompression: (e) => events.push(e) });
+    await engine.start();
+    vi.advanceTimersByTime(3000);
+    engine.reset();
+    engine.markRest();
+    events.length = 0;
+    vi.advanceTimersByTime(ms);
+    engine.stop();
+    return { states, events, last: states.at(-1) };
+  }
+
+  it('good technique: all events pass and no issue is raised', async () => {
+    const { events, last } = await practice('?sim=1');
+    expect(events.length).toBeGreaterThan(20);
     expect(events.every((e) => e.elbowsLocked && e.aligned && e.fullRecoil)).toBe(true);
+    expect(last.issues).toEqual({ elbows: false, position: false, recoil: false, depth: null });
   });
 
+  it.each([
+    ['bend=30', { elbows: true, position: false, recoil: false }, 'elbowsLocked'],
+    ['lean=25', { elbows: false, position: true, recoil: false }, 'aligned'],
+    ['recoil=0.6', { elbows: false, position: false, recoil: true }, 'fullRecoil'],
+  ])('%s raises only its own issue', async (param, issues, field) => {
+    const { events, last } = await practice(`?sim=1&${param}`);
+    expect(last.issues).toEqual({ ...issues, depth: null });
+    expect(events.filter((e) => !e[field]).length / events.length).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('bend=30 raises issues.elbows even without markRest (cold start)', async () => {
+    const { states } = await run('?sim=1&bend=30', 5000);
+    expect(states.at(-1).issues).toEqual({ elbows: true, position: false, recoil: false, depth: null });
+  });
+
+  it('events carry real form angles', async () => {
+    const { events } = await practice('?sim=1&bend=30&lean=25', 6000);
+    const e = events.at(-1);
+    expect(e.elbowAngleDeg).toBeGreaterThan(140);
+    expect(e.elbowAngleDeg).toBeLessThan(160);
+    expect(e.armLeanDeg).toBeGreaterThan(20);
+    expect(e.armLeanDeg).toBeLessThan(30);
+    expect(typeof e.recoilRatio).toBe('number');
+  });
   it('reset zeroes the count and the rate; markRest, setDebug and stop do not throw', async () => {
     const timers = fakeTimers();
     const states = [];

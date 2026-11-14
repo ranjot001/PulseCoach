@@ -9,6 +9,7 @@ import { createSimSource, SIM_DEFAULTS } from './pose/simSource.js';
 import { createMotionSignal } from './lib/signal.js';
 import { createCompressionDetector } from './lib/compressionDetector.js';
 import { createRateTracker } from './lib/rate.js';
+import { createFormTracker } from './lib/form.js';
 import { createStage } from './ui/stage.js';
 
 const STATE_INTERVAL_MS = 100;
@@ -58,18 +59,7 @@ function toEngineError(err) {
   return { code: err?.code || 'model-failed', message: String(err?.message || err) };
 }
 
-// Form fields of a compression event. Passing values until the form checks (A4).
-function formFields() {
-  return {
-    elbowAngleDeg: 180,
-    armLeanDeg: 0,
-    recoilRatio: 1,
-    elbowsLocked: true,
-    aligned: true,
-    fullRecoil: true,
-    depthCm: null,
-  };
-}
+const SIM_REST_MS = 1000; // after markRest() the simulated learner starts from rest, like a real one on "go"
 
 /**
  * @param {object} opts
@@ -90,6 +80,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
   const signal = createMotionSignal(config);
   const detector = createCompressionDetector(config);
   const rate = createRateTracker(config);
+  const form = createFormTracker(config);
 
   let view = null;
   let source = null; // sim source or pose tracker
@@ -122,9 +113,10 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
 
     const sample = signal.push(frame);
     lastSampleValid = sample.valid;
+    form.onFrame(frame, sample);
 
     if (view) {
-      view.draw(frame, config.MIN_VISIBILITY);
+      view.draw(frame, config.MIN_VISIBILITY, { elbowsBad: form.getLiveIssues().elbows });
       view.plot(frame.t, sample.valid ? sample.detrended : null);
     }
 
@@ -137,7 +129,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
 
     const partial = detector.push(sample);
     if (!partial) return;
-    const event = { ...partial, ...formFields() };
+    const event = { ...partial, ...form.complete(partial), depthCm: null };
     rate.onCompression(event);
     compressions += 1;
     safeCall(onCompression, event);
@@ -153,7 +145,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
       compressions,
       rate: cpm,
       rateZone: rate.zone(cpm),
-      issues: { elbows: false, position: false, recoil: false, depth: null },
+      issues: { ...form.getLiveIssues(), depth: null },
       setup: { ok: true, checks: [] },
     };
   }
@@ -239,10 +231,19 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
     reset() {
       detector.reset();
       rate.reset();
+      form.reset();
       compressions = 0;
     },
     markRest() {
-      // Records the resting shoulder height from A5/A6 onward.
+      // The simulated learner kneels still for a moment first, as a real one does on "go".
+      // It jumps to rest from wherever it was mid-stroke, so the signal starts over and
+      // fills its baseline with the rest pose, as it would for someone who was already still.
+      if (isSim && source && typeof source.rest === 'function') {
+        source.rest(SIM_REST_MS);
+        signal.reset();
+        detector.reset();
+      }
+      form.markRest();
     },
     setDebug(on) {
       debug = Boolean(on);

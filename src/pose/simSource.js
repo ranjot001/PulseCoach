@@ -14,6 +14,7 @@ export const SIM_DEFAULTS = {
   recoil: 1, // fraction of the way back up after each compression
   scale: 1, // 1 = torso about 30% of the frame height
   drift: 0, // slow posture drift of the upper body (hips stay still), torso units per second
+  motionStartMs: 0, // before this time the figure kneels still at full release; compressions start here
   seed: 1,
 };
 
@@ -36,10 +37,16 @@ function gaussian(rand) {
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rand());
 }
 
-/** Downward shoulder displacement as a fraction of `travel`, 0 (top) .. 1 (bottom). */
+/**
+ * Downward shoulder displacement as a fraction of `travel`, 0 (top) .. 1 (bottom).
+ * `tMs` is time since compressions started. The first push starts from full release;
+ * after the first bottom, each release only comes back up by `recoil`.
+ */
 export function compressionPhase(tMs, cpm, recoil) {
-  const p = ((tMs * cpm) / 60000) % 1;
-  const wave = (1 - Math.cos(2 * Math.PI * p)) / 2; // 0 at top, 1 at bottom
+  if (tMs < 0) return 0;
+  const cycles = (tMs * cpm) / 60000;
+  const wave = (1 - Math.cos(2 * Math.PI * (cycles % 1))) / 2; // 0 at top, 1 at bottom
+  if (cycles < 0.5) return wave;
   const r = Math.min(1, Math.max(0, recoil));
   return 1 - r + r * wave;
 }
@@ -63,7 +70,7 @@ export function simFrame(tMs, params = {}) {
 
   // Anchor: hands rest on the pillow, centre of the frame, at 80% height.
   const driftPx = p.drift * T * (tMs / 1000);
-  const down = compressionPhase(tMs, p.cpm, p.recoil) * p.travel * T;
+  const down = compressionPhase(tMs - p.motionStartMs, p.cpm, p.recoil) * p.travel * T;
   const wristRest = { x: W * 0.55, y: H * 0.8 - 0.5 * T * (1 - p.scale) };
   const wrist = { x: wristRest.x, y: wristRest.y + down + driftPx };
   // Shoulder above the wrist, tilted back by the lean angle (hands ahead of shoulders).
@@ -126,7 +133,12 @@ export function createSimSource(params = {}, timers = {}) {
   let id = null;
   let t0 = 0;
   let lastT = -1;
+  let frameParams = { ...params };
   return {
+    /** The simulated learner kneels still at full release for `ms`, then starts compressing. */
+    rest(ms) {
+      frameParams = { ...frameParams, motionStartMs: Math.max(0, lastT) + ms };
+    },
     start(onFrame) {
       this.stop();
       t0 = t.now();
@@ -135,7 +147,7 @@ export function createSimSource(params = {}, timers = {}) {
         let ts = t.now() - t0;
         if (ts <= lastT) ts = lastT + 1; // strictly increasing
         lastT = ts;
-        onFrame(simFrame(ts, params));
+        onFrame(simFrame(ts, frameParams));
       }, 1000 / SIM_FPS);
     },
     stop() {

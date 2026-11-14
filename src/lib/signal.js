@@ -1,4 +1,5 @@
 // Motion signal: shoulder-midpoint height in torso units, smoothed and detrended.
+// push(frame) → { t, raw, smooth, detrended, torsoLen, smoothPx, valid }
 // Image y grows downward, so pushing down makes the signal larger.
 // Pure logic: no DOM, no timers.
 import { toPixels, distance, midpoint } from './geometry.js';
@@ -54,6 +55,7 @@ export function createMotionSignal(config) {
   const torso = windowBuffer(config.TORSO_WINDOW_MS);
   const hipY = windowBuffer(config.TORSO_WINDOW_MS); // hips barely move: a steady reference
   const smoothBuf = windowBuffer(config.SMOOTH_WINDOW_MS);
+  const smoothPxBuf = windowBuffer(config.SMOOTH_WINDOW_MS);
   const baseBuf = windowBuffer(baselineMs);
   const baseHistory = windowBuffer(baselineMs); // past baseline means, for lag compensation
   let lastValidT = null;
@@ -62,13 +64,14 @@ export function createMotionSignal(config) {
     torso.clear();
     hipY.clear();
     smoothBuf.clear();
+    smoothPxBuf.clear();
     baseBuf.clear();
     baseHistory.clear();
     lastValidT = null;
   }
 
   function invalid(t, torsoLen = null) {
-    return { t, raw: null, smooth: null, detrended: null, torsoLen, valid: false };
+    return { t, raw: null, smooth: null, detrended: null, torsoLen, smoothPx: null, valid: false };
   }
 
   return {
@@ -93,10 +96,15 @@ export function createMotionSignal(config) {
       // the reference (instead of the top of the frame) keeps the signal independent
       // of where the learner sits in the frame and of the small torso-length wobble.
       // The hip height is a rolling median, so hip jitter does not add to the signal.
-      const raw = (sh.y - hipY.median()) / torsoLen;
+      const heightPx = sh.y - hipY.median();
+      const raw = heightPx / torsoLen;
 
       smoothBuf.push(t, raw);
       const smooth = smoothBuf.mean();
+      // The same height in plain pixels, smoothed. Ratios within a session (recoil) use
+      // this: torso length shrinks a little during each push, which would skew them.
+      smoothPxBuf.push(t, heightPx);
+      const smoothPx = smoothPxBuf.mean();
 
       // Baseline: moving average over BASELINE_WINDOW_MS. A trailing average lags a
       // steady drift by half a window, so add back the slope over the last window.
@@ -114,7 +122,7 @@ export function createMotionSignal(config) {
         baseline = ma + Math.max(-cap, Math.min(cap, (slopePerMs * baselineMs) / 2));
       }
 
-      return { t, raw, smooth, detrended: smooth - baseline, torsoLen, valid: true };
+      return { t, raw, smooth, detrended: smooth - baseline, torsoLen, smoothPx, valid: true };
     },
   };
 }

@@ -38,3 +38,15 @@
 - Tests model a session like the app runs it: still for 2 s (countdown), `reset()`, then compressions. A separate test checks that a cold start with no lead-in still counts right.
 - No config values changed.
 - Human checks still to do: `/dev/stage.html` with the camera, 20 counted compressions → 20 ± 1; shift posture, talk, reach → count does not move; push to a 110 beat → rate 100 to 120 within five pushes. If it miscounts, tune `MIN_TRAVEL` in `src/config.js`.
+
+## A4 Form checks (on `track-a`)
+
+- Built: `src/lib/form.js`: `chooseArm` (higher average visibility of shoulder, elbow, wrist), `elbowAngleDeg(frame)` and `armLeanDeg(frame)` in pixel space, `createFormTracker(config)` with `onFrame`, `complete(event)`, `getLiveIssues()` (two of the last three), `markRest()`, `reset()`. Angles are the median over each cycle.
+- `src/engine.js`: events carry real `elbowAngleDeg`, `armLeanDeg`, `recoilRatio`, `elbowsLocked`, `aligned`, `fullRecoil`; `state.issues.elbows/position/recoil` come from `getLiveIssues()`. `reset()` clears the form tracker. `markRest()` records the rest height. Interface unchanged. Track B's `hud.test.js` "bend=30 → only Elbows is red" passes again.
+- `src/ui/overlay.js`: arms drawn thicker in `--bad` while the elbows check is failing.
+- Recoil: the release leading into each push, `(bottom − top) / (bottom − rest)`. The rest reference is the median shoulder height over the 400 ms after `markRest()` (the learner is still on "go"); without one, the highest top in the last 6 s. Measured in pixels of shoulder height above the hips, not torso units: torso length shrinks a little during each push, which made every release read about 0.15 too full. `signal.push()` now also returns `smoothPx` for this.
+- Simulator: after `markRest()` the simulated learner kneels still for 1 s, then starts compressing from full release (the first push starts smoothly from rest). Before, it kept compressing through the countdown, so the rest reference was a half-released top and `?sim=1&recoil=0.6` could never go red in the app. The motion signal restarts at that moment in sim mode, so its baseline fills with the rest pose as it would for a real learner. New `simFrame` param `motionStartMs` and `createSimSource().rest(ms)`.
+- Noise sweep (20 seeds × 20 s each): good technique at 1×, 2× and 3× noise never raised a live issue; bend 25/30 and lean 25 flagged 100%; recoil 0.6 and 0.8 flagged 97% (the misses are the first push from rest). Measured recoil at a true 1.0 is 0.97; at 0.85 it is 0.82.
+- No config values changed.
+- **Tuning watch at the webcam:** the rest reference is taken once per session. If a learner settles lower after "go" (shifts their knees), every release can look incomplete. If good technique turns Recoil red, lower `RECOIL_MIN_RATIO` first.
+- Human checks still to do: main page with the camera; bend elbows → Elbows red within three pushes, green again when straight; sit back with angled arms → Position red; don't come fully up → Recoil red; best technique for 15 s → all three green (if not, loosen that threshold in `src/config.js`).

@@ -45,7 +45,7 @@ export function createStage(container, { simulated = false } = {}) {
   return {
     video,
     canvas,
-    draw(frame, minVisibility) {
+    draw(frame, minVisibility, status) {
       if (!ctxTried) {
         ctxTried = true;
         try {
@@ -59,7 +59,7 @@ export function createStage(container, { simulated = false } = {}) {
         canvas.width = frame.width;
         canvas.height = frame.height;
       }
-      drawPose(ctx, frame.landmarks, frame.width, frame.height, minVisibility);
+      drawPose(ctx, frame.landmarks, frame.width, frame.height, minVisibility, status);
     },
     /** Add one motion-signal sample (null when invalid) and redraw the chart if visible. */
     plot(t, value) {
