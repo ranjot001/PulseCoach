@@ -691,3 +691,49 @@ body {
   margin: 0;
   font-size: 1.5rem;
 }
+
+/* ─── B5: relay drill ─────────────────────────────────────────────────── */
+
+.session-status {
+  display: flex;
+  align-items: baseline;
+  gap: 1.2rem;
+}
+
+.relay-label {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.relay-label[hidden] { display: none; }
+
+.hud-chip-slip { flex-basis: 100%; }
+
+.switch-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  border-radius: 16px;
+  text-align: center;
+}
+
+.switch-overlay[hidden] { display: none; }
+
+.switch-timer {
+  font-size: clamp(180px, 34vh, 360px);
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--status);
+}
+
+.switch-text {
+  font-size: clamp(2.2rem, 7vh, 4rem);
+  font-weight: 800;
+}

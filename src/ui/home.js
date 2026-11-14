@@ -1,6 +1,6 @@
 // Home screen (setup checklist, shortcut legend, leaderboard, Start), the keyboard
 // shortcut map, and the camera error screen. Mapping logic is in small pure functions.
-import { PRODUCT_NAME, HOME, SETUP, SHORTCUT_LEGEND, ERRORS } from '../copy.js';
+import { PRODUCT_NAME, HOME, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY } from '../copy.js';
 
 // ─── Pure mappings ────────────────────────────────────────────────────────
 
@@ -112,10 +112,10 @@ function shortcutLegend() {
 
 /**
  * @param {HTMLElement} container
- * @param {{ onStart: () => void }} opts
+ * @param {{ onStart: () => void, onSolo?: () => void }} opts  onStart runs the relay drill
  * @returns {{ leaderboardSlot: HTMLElement, updateSetup(setup: object): void }}
  */
-export function renderHome(container, { onStart }) {
+export function renderHome(container, { onStart, onSolo }) {
   const intro = el('section', 'home-intro');
   const h = el('h2', 'home-title', PRODUCT_NAME);
   const tag = el('p', 'home-tagline', HOME.tagline);
@@ -127,16 +127,21 @@ export function renderHome(container, { onStart }) {
   const list = el('ul', 'checklist-list');
   checklist.append(checklistHeading, list);
 
-  const start = el('button', 'btn btn-primary', HOME.start);
+  const start = el('button', 'btn btn-primary', RELAY.startRelay);
   start.type = 'button';
+  start.dataset.action = 'relay';
   start.addEventListener('click', () => onStart());
+  const solo = el('button', 'btn', RELAY.startSolo);
+  solo.type = 'button';
+  solo.dataset.action = 'solo';
+  solo.addEventListener('click', () => (onSolo || onStart)());
   const startAnyway = el('button', 'link-button', SETUP.startAnyway);
   startAnyway.type = 'button';
   startAnyway.hidden = true;
   startAnyway.addEventListener('click', () => onStart());
   const hint = el('span', 'hint', HOME.startHint);
   const actions = el('div', 'actions');
-  actions.append(start, startAnyway, hint);
+  actions.append(start, startAnyway, hint, solo);
 
   intro.append(h, tag, instr, positionDiagram(), checklist, actions);
 

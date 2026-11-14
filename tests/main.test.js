@@ -7,7 +7,7 @@ import { config } from '../src/config.js';
 
 const visible = (id) => !document.getElementById(id).hidden;
 
-describe('practice loop with ?sim=1', () => {
+describe('solo practice loop with ?sim=1', () => {
   beforeAll(async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date', 'performance'] });
     const html = readFileSync(resolve(import.meta.dirname, '../index.html'), 'utf8');
@@ -38,7 +38,7 @@ describe('practice loop with ?sim=1', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
       expect(debugLine.hidden).toBe(true);
     }
-    document.querySelector('#screen-home .btn-primary').click();
+    document.querySelector('#screen-home [data-action="solo"]').click();
 
     expect(visible('countdown')).toBe(true);
     expect(document.getElementById('countdown-number').textContent).toBe('3');

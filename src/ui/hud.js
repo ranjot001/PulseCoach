@@ -1,7 +1,7 @@
 // Practice-screen readouts, drawn from the engine's onState and onCompression.
 // The state → label/colour mapping lives in small pure functions at the top so it can be tested.
 import { config } from '../config.js';
-import { PRACTICE } from '../copy.js';
+import { PRACTICE, RELAY } from '../copy.js';
 
 /** Status colours map to the CSS variables --good, --warn, --bad. 'none' is muted. */
 
@@ -63,6 +63,54 @@ export function statusText(state) {
   return '';
 }
 
+/**
+ * The "Slipping" chip: shown while the engine says this compressor is slipping,
+ * naming the signs in plain words. A missing `fatigue` (engine before A5) means not slipping.
+ */
+export function slipView(fatigue) {
+  if (!fatigue || !fatigue.slipping) return { visible: false, text: '' };
+  const words = (fatigue.signs || []).map((s) => RELAY.signs[s]).filter(Boolean);
+  return { visible: true, text: words.length ? `${RELAY.slipping}: ${words.join(', ')}` : RELAY.slipping };
+}
+
+/** Pause timer colour: green, amber after PAUSE_WARN_SEC, red after PAUSE_MAX_SEC. */
+export function pauseStatus(sec, cfg = config) {
+  if (sec >= cfg.PAUSE_MAX_SEC) return 'bad';
+  if (sec >= cfg.PAUSE_WARN_SEC) return 'warn';
+  return 'good';
+}
+
+/** The line under the pause timer for a relay view. */
+export function switchMessage(view) {
+  if (view.phase === 'rhythmCheck') return RELAY.rhythmHandsOff;
+  if (view.phase === 'resume') return RELAY.switchNow(view.compressor);
+  return '';
+}
+
+/**
+ * Full-width switch overlay with a huge pause timer.
+ * @returns {{ update(view): void, hide(): void }}
+ */
+export function createSwitchOverlay(root, cfg = config) {
+  const timer = el('div', 'switch-timer status-good', RELAY.pauseValue(0));
+  const message = el('div', 'switch-text', '');
+  root.replaceChildren(timer, message);
+  root.hidden = true;
+  return {
+    update(view) {
+      const switching = view.phase === 'rhythmCheck' || view.phase === 'resume';
+      root.hidden = !switching;
+      if (!switching) return;
+      timer.textContent = RELAY.pauseValue(view.pauseSec);
+      for (const s of ['good', 'warn', 'bad']) timer.classList.toggle(`status-${s}`, s === pauseStatus(view.pauseSec, cfg));
+      message.textContent = switchMessage(view);
+    },
+    hide() {
+      root.hidden = true;
+    },
+  };
+}
+
 // ─── DOM ──────────────────────────────────────────────────────────────────
 
 function el(tag, className, text) {
@@ -113,6 +161,10 @@ export function createHud(root, cfg = config) {
   depthChip.dataset.check = 'depth';
   depthChip.hidden = true;
   chips.append(depthChip);
+  const slipChip = el('div', 'hud-chip hud-chip-slip status-warn', RELAY.slipping);
+  slipChip.dataset.check = 'slipping';
+  slipChip.hidden = true;
+  chips.append(slipChip);
 
   const cue = el('section', 'hud-cue status-none');
   cue.setAttribute('aria-live', 'polite');
@@ -167,6 +219,9 @@ export function createHud(root, cfg = config) {
       for (const view of chipViews(state.issues || {})) setStatusClass(chipNodes[view.id], view.status);
       lastDepthIssue = state.issues ? state.issues.depth ?? null : null;
       renderDepth();
+      const slip = slipView(state.fatigue);
+      slipChip.hidden = !slip.visible;
+      if (slip.visible) slipChip.textContent = slip.text;
 
       status.textContent = statusText(state);
     },

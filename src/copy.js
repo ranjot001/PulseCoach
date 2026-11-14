@@ -92,6 +92,23 @@ export const LEADERBOARD = {
   perMin: '/min',
 };
 
+export const RELAY = {
+  prompts: {
+    rhythmCheck: 'Stop compressions. Rhythm check.',
+    resume: 'Switch compressors. Resume now.',
+    switchEarly: 'Your compressions are dropping off. Switch now.',
+    backOn: 'Back on the chest!',
+  },
+  startRelay: 'Start relay drill',
+  startSolo: 'Solo practice · 30 s',
+  turnLabel: (compressor, turn, turns) => `Compressor ${compressor} · Turn ${turn} of ${turns}`,
+  rhythmHandsOff: 'Rhythm check: hands off',
+  switchNow: (compressor) => `Switch! Compressor ${compressor}, start now`,
+  pauseValue: (sec) => `${sec.toFixed(1)}s`,
+  slipping: 'Slipping',
+  signs: { shallower: 'smaller pushes', slower: 'slower', elbows: 'elbows bending' },
+};
+
 export const SETUP = {
   heading: 'Get into position',
   startAnyway: 'Start anyway',
@@ -109,7 +126,7 @@ export const SETUP = {
 
 export const SHORTCUT_LEGEND = {
   heading: 'Keys',
-  start: 'Start / restart',
+  start: 'Start relay / restart',
   mute: 'Voice on / off',
   metronome: 'Metronome',
   debug: 'Debug view',
@@ -137,5 +154,5 @@ export const ERRORS = {
   runSimulator: 'Run simulator',
 };
 
-export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS };
+export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY };
 export default copy;

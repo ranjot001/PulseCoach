@@ -1,9 +1,9 @@
-// PulseCoach page: a small screen state machine — home → countdown → practice → results → countdown …
+// PulseCoach page: a small screen state machine — home → countdown → practice (relay drill or solo) → results → countdown …
 import './styles.css';
 import { createEngine } from './engine.js';
 import { config } from './config.js';
-import { PRODUCT_NAME, FOOTER_LINE, PRACTICE, SESSION } from './copy.js';
-import { createHud } from './ui/hud.js';
+import { PRODUCT_NAME, FOOTER_LINE, PRACTICE, SESSION, RELAY } from './copy.js';
+import { createHud, createSwitchOverlay } from './ui/hud.js';
 import { renderHome, renderError, shortcutAction, simulatorUrl } from './ui/home.js';
 import { renderResults } from './ui/results.js';
 import { createLeaderboard, renderLeaderboard } from './ui/leaderboard.js';
@@ -11,6 +11,7 @@ import { createMetronome } from './audio/metronome.js';
 import { createVoice } from './audio/voice.js';
 import { createCoach } from './lib/feedback.js';
 import { summarise } from './lib/score.js';
+import { createRelay, drillOptions } from './lib/relay.js';
 
 document.getElementById('title').textContent = PRODUCT_NAME;
 document.getElementById('footer').textContent = FOOTER_LINE;
@@ -24,8 +25,10 @@ const screens = {
 const countdownEl = document.getElementById('countdown');
 const countdownNumber = document.getElementById('countdown-number');
 const timerEl = document.getElementById('timer');
+const relayLabel = document.getElementById('relay-label');
 
 const hud = createHud(document.getElementById('hud'));
+const switchOverlay = createSwitchOverlay(document.getElementById('switch'));
 const leaderboard = createLeaderboard();
 
 // ─── Metronome ────────────────────────────────────────────────────────────
@@ -96,17 +99,38 @@ let screen = 'home';
 let events = [];
 let homeView = null;
 let debug = false;
+let mode = 'relay'; // 'relay' | 'solo'
+let relay = null;
+let lastState = null;
+let coachTurn = 0;
+
+function relayPhase() {
+  return relay ? relay.getView(clock()).phase : null;
+}
 
 const engine = createEngine({
   stage: document.getElementById('stage'),
   onState(state) {
+    lastState = state;
     hud.update(state);
     if (screen === 'home' && homeView) homeView.updateSetup(state.setup);
-    if (screen === 'practice') coach.next(state, clock());
+    // Coaching cues stay quiet during a relay switch.
+    if (screen === 'practice' && (mode === 'solo' || relayPhase() === 'compressing')) coach.next(state, clock());
   },
   onCompression(event) {
     hud.compression(event);
-    if (screen === 'practice') events.push(event);
+    if (screen !== 'practice') return;
+    if (mode === 'solo') {
+      events.push(event);
+      return;
+    }
+    const now = clock();
+    relay.onCompression(event, now);
+    const view = relay.getView(now);
+    if (view.phase === 'compressing' && view.turn !== coachTurn) {
+      coachTurn = view.turn;
+      coach.reset();
+    }
   },
   onError(err) {
     showError(err);
@@ -125,6 +149,8 @@ function show(name) {
   screens.error.hidden = name !== 'error';
   countdownEl.hidden = name !== 'countdown';
   timerEl.hidden = name !== 'countdown' && name !== 'practice';
+  relayLabel.hidden = mode !== 'relay' || (name !== 'countdown' && name !== 'practice');
+  if (name !== 'practice') switchOverlay.hide();
   document.body.dataset.screen = name;
 }
 
@@ -153,7 +179,7 @@ function goHome() {
   clearTimers();
   setMetronome(false);
   show('home');
-  homeView = renderHome(screens.home, { onStart: startCountdown });
+  homeView = renderHome(screens.home, { onStart: () => startCountdown('relay'), onSolo: () => startCountdown('solo') });
   drawLeaderboard(homeView.leaderboardSlot);
 }
 
@@ -174,11 +200,18 @@ function showError(err) {
   });
 }
 
-function startCountdown() {
+function startCountdown(nextMode = mode) {
   if (screen === 'countdown' || screen === 'practice' || screen === 'error') return;
   clearTimers();
+  mode = nextMode;
   hud.setCue('');
-  renderTimer(config.SESSION_SECONDS);
+  if (mode === 'relay') {
+    const opts = drillOptions(globalThis.location?.search, config);
+    relayLabel.textContent = RELAY.turnLabel(1, 1, opts.turns);
+    renderTimer(opts.turnSeconds);
+  } else {
+    renderTimer(config.SESSION_SECONDS);
+  }
   show('countdown');
   let n = config.COUNTDOWN_SECONDS;
   const tickCount = () => {
@@ -202,6 +235,10 @@ function startPractice() {
   if (!coach.muted) voice.speak(SESSION.go);
   show('practice');
   setMetronome(true);
+  if (mode === 'relay') {
+    startRelay();
+    return;
+  }
   const startedAt = clock();
   const durationMs = config.SESSION_SECONDS * 1000;
   renderTimer(config.SESSION_SECONDS);
@@ -212,13 +249,58 @@ function startPractice() {
   }, 100);
 }
 
+// ─── Relay drill ──────────────────────────────────────────────────────────
+function startRelay() {
+  relay = createRelay(config, drillOptions(globalThis.location?.search, config));
+  relay.start(clock());
+  coachTurn = 1;
+  renderRelay();
+  sessionTimer = setInterval(relayTick, 100);
+}
+
+function renderRelay() {
+  const view = relay.getView(clock());
+  relayLabel.textContent = RELAY.turnLabel(view.compressor, view.turn, view.turns);
+  renderTimer(view.turnSecondsLeft);
+  switchOverlay.update(view);
+}
+
+/** Drill prompts are spoken at once, cancelling any cue in progress, and respect mute. */
+function sayPrompt(text) {
+  clearTimeout(bannerTimer);
+  hud.setCue(text, 'warn');
+  bannerTimer = setTimeout(() => hud.setCue(''), config.CUE_BANNER_MS);
+  if (!coach.muted) voice.speak(text);
+}
+
+function relayTick() {
+  for (const prompt of relay.tick(lastState, clock())) {
+    if (prompt === 'finished') {
+      finishSession();
+      return;
+    }
+    if (prompt === 'rhythmCheck' || prompt === 'switchEarly') engine.markTurn?.();
+    sayPrompt(RELAY.prompts[prompt]);
+  }
+  renderRelay();
+}
+
 function finishSession() {
   clearTimers();
   setMetronome(false);
   voice.cancel();
   clearTimeout(bannerTimer);
   hud.setCue('');
-  const stats = summarise(events, config.SESSION_SECONDS, config);
+  switchOverlay.hide();
+  let stats;
+  if (mode === 'relay') {
+    // Until B6: the solo results screen over all of the drill's compressions.
+    const drill = relay.getDrill();
+    const all = drill.turns.flatMap((t) => t.events);
+    stats = summarise(all, (drill.endedAt - drill.startedAt) / 1000, config);
+  } else {
+    stats = summarise(events, config.SESSION_SECONDS, config);
+  }
   show('results');
   const { leaderboardSlot } = renderResults(screens.results, stats, {
     onSave(name) {
@@ -247,7 +329,8 @@ function toggleDebug() {
 
 const actions = {
   start() {
-    if (screen === 'home' || screen === 'results') startCountdown();
+    if (screen === 'home') startCountdown('relay');
+    else if (screen === 'results') startCountdown();
   },
   mute: toggleMute,
   metronome: () => setMetronome(!metronome.running),

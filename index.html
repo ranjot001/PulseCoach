@@ -14,7 +14,10 @@
     <div class="app">
       <header class="topbar">
         <h1 id="title" class="brand">PulseCoach</h1>
-        <div id="timer" class="timer" hidden></div>
+        <div class="session-status">
+          <div id="relay-label" class="relay-label" hidden></div>
+          <div id="timer" class="timer" hidden></div>
+        </div>
         <div class="controls">
           <span id="beat-dot" class="beat-dot" aria-hidden="true"></span>
           <button id="metronome-toggle" class="btn" type="button" aria-pressed="false">Metronome off</button>
@@ -25,6 +28,7 @@
       <main id="screen-session" class="screen practice" hidden>
         <div id="stage" class="stage-panel"></div>
         <div id="hud" class="hud"></div>
+        <div id="switch" class="switch-overlay" role="status" aria-live="assertive" hidden></div>
         <div id="countdown" class="countdown" hidden>
           <div id="countdown-number" class="countdown-number"></div>
         </div>

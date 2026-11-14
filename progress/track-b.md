@@ -79,7 +79,7 @@
 **Built**
 - **Readable from 3 m**: rate number `clamp(130px, 20vh, 240px)` with `line-height: 1` (≥120 px tall, checked by a stylesheet test); bigger rate label; screens are 100vh grids with `overflow: hidden`, so no scrolling at 1366×768 or 1920×1080; status colours only from `--good/--warn/--bad`.
 - **Camera error screen** (`renderError` in `src/ui/home.js`, `#screen-error`): a title and message per code (`camera-denied`, `no-camera`, `model-failed`, plus a fallback), "Try again" (stop + start the engine, back home) and "Run simulator" (same address with `sim=1`, `video` removed). A rejected `engine.start()` also lands here as `model-failed`.
-- **Setup checklist** on home from `state.setup.checks`: live ✓/✗ per check, hint under failing ones. While not ok, Start is disabled and a quiet "Start anyway" link shows; once ok, Start is the main button. Empty `checks` → checklist hidden, Start enabled. Check ids get friendly labels in `SETUP.labels` (`person`, `visible`, `side-on`, `distance`, `in-frame` from task A5).
+- **Setup checklist** on home from `state.setup.checks`: live ✓/✗ per check, hint under failing ones. While not ok, Start is disabled and a quiet "Start anyway" link shows; once ok, Start is the main button. Empty `checks` → checklist hidden, Start enabled. Check ids get friendly labels in `SETUP.labels` (`person`, `visible`, `side-on`, `distance`, `in-frame` from task A6, renumbered from A5 in the relay plan).
 - **The engine now starts at page load** (not on first Start) so the checklist is live on home; the camera prompt and any camera error appear on load.
 - **Shortcuts** (`shortcutAction` in `src/ui/home.js`): Space start/restart, `M` voice mute (was metronome in B1), `B` metronome, `D` debug (`engine.setDebug`), `F` fullscreen. Ignored while typing, with modifiers or on key repeat. Legend on the home screen.
 - **Debug hidden**: `engine.setDebug(false)` at start-up.
@@ -94,4 +94,26 @@
 - Stand 3 m away: rate, indicators and cue banner readable.
 - Block the camera in the browser and reload (without `?sim=1`): the error screen appears with both buttons. Note: until Track A's camera task lands on `main`, the fake engine never errors, so this needs Track A's engine.
 - Once Track A's setup check is on `main`, kneel in position and watch the checklist tick.
+- Then say "ship it".
+
+## B5: Relay drill — done (2026-11-14)
+
+**Built**
+- `src/lib/relay.js`: `createRelay(config, { turns, turnSeconds })`, pure, page-clock `now` only (event `tBottom`/`tTop` are never stored as times; each event gets `at`). `start`, `onCompression`, `tick(state, now)` → prompts (`rhythmCheck`, `resume`, `switchEarly`, `backOn`, `finished`), `getView`, `getDrill` in the B6 shape. A turn's clock starts at its first compression. Early switch needs `EARLY_SWITCH_MS` of continuous slipping and `MIN_TURN_SECONDS`; never on the last turn (the slip is still recorded). `slippedAt` and `signs` record the first slip that lasted `EARLY_SWITCH_MS`. Missing `fatigue` = not slipping. At a switch the next turn is created at once (startAt `null` until its first compression), so the view shows the incoming compressor during the switch. Compressions during the rhythm check belong to no turn. Also `drillOptions(search)` for `?turns=` / `?turnSeconds=`.
+- `src/main.js`: modes `relay` and `solo`. Home: **Start relay drill** (main button, Space) and **Solo practice · 30 s**. A 100 ms timer drives `relay.tick` with the latest engine state. `engine.markTurn?.()` once at every rhythm check (normal or early). Coach reset at each new turn, and coach cues only while compressing. Prompts spoken at once (voice cancels), shown in the cue banner, respect mute. Try again / Space on results repeats the same mode. Until B6 the drill ends on the solo results screen with `summarise` over every turn's events and the whole drill's duration.
+- `src/ui/hud.js`: "Slipping" chip (amber, signs in plain words: smaller pushes, slower, elbows bending), `createSwitchOverlay` (pause timer with one decimal, green → amber at `PAUSE_WARN_SEC` → red at `PAUSE_MAX_SEC`, "Rhythm check: hands off" then "Switch! Compressor N, start now"). Pure: `slipView`, `pauseStatus`, `switchMessage`.
+- `index.html`: "Compressor 1 · Turn 1 of 2" label next to the turn countdown in the top bar; `#switch` overlay over the practice screen.
+- `src/copy.js`: `RELAY` prompts and labels.
+- Tests: `tests/relay.test.js`, `tests/main-relay.test.js` (whole drill on `?sim=1&turnSeconds=20`, fake engine without `markTurn`, no console errors), `tests/main-relay-engine.test.js` (real simulator wrapped with `markTurn` and fatigue: `markTurn` once, and slipping 20 s into turn 1 → "switchEarly" spoken, the switch overlay and turn 2), relay HUD and a 160 px pause-timer stylesheet test in `tests/hud.test.js`. `tests/main.test.js` now starts solo with the solo button (the main button is the relay now).
+
+**Config added (Track B section)**: the relay keys from CLAUDE.md, unchanged values: `DRILL_TURNS`, `DRILL_TURN_SECONDS`, `MIN_TURN_SECONDS`, `EARLY_SWITCH_MS`, `RHYTHM_CHECK_MS`, `PAUSE_MIN_MS`, `PAUSE_WARN_SEC`, `PAUSE_MAX_SEC`, `CCF_MIN`, `CCF_TARGET`, `RELAY_WEIGHTS`.
+
+**Known limits**
+- If nobody compresses after "Resume now", the drill waits (the pause timer keeps counting, red after 10 s). There is no way back to home from results apart from reloading (unchanged from B3).
+- The fake engine never stops pushing, so in `?sim=1` the switch pause is always ~3.5 s until Track A's A5 simulator (with `swap`) lands.
+
+**Human checks still to do**
+- Two people, `?sim=1&turnSeconds=20`: the drill runs end to end; prompts clear over the metronome; switch screen readable from across the room.
+- Once A5 is on `main`: `?sim=1&fatigue=1` calls "Your compressions are dropping off. Switch now." partway through turn 1.
+- With the camera: two people swap on the pillow; the pause timer stops the moment the second person starts.
 - Then say "ship it".
