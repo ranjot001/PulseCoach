@@ -81,8 +81,8 @@ describe('fake engine', () => {
   });
 
   it('reports slow and fast rate zones', async () => {
-    expect((await run('?cpm=80', 3000)).states.at(-1).rateZone).toBe('slow');
-    expect((await run('?cpm=140', 3000)).states.at(-1).rateZone).toBe('fast');
+    expect((await run('?sim=1&cpm=80', 3000)).states.at(-1).rateZone).toBe('slow');
+    expect((await run('?sim=1&cpm=140', 3000)).states.at(-1).rateZone).toBe('fast');
   });
 
   it('reset, markRest, setDebug and stop do not throw', async () => {

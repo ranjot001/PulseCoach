@@ -5,12 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PulseCoach · stage dev</title>
     <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      main { padding: 1rem; display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: 1rem; }
+      @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+      #state { margin: 0; font-size: 1rem; }
+      #error { color: var(--bad); font-size: 1.25rem; }
+    </style>
   </head>
   <body>
-    <main style="max-width: 960px; margin: 0 auto; padding: 1rem">
-      <h1>Engine stage</h1>
+    <main>
       <div id="stage"></div>
-      <pre id="state"></pre>
+      <div>
+        <p id="error"></p>
+        <pre id="state">starting…</pre>
+      </div>
     </main>
     <script type="module">
       import { createEngine } from '/src/engine.js';
@@ -19,9 +27,9 @@
         stage: document.getElementById('stage'),
         onState: (s) => (out.textContent = JSON.stringify(s, null, 2)),
         onCompression: () => {},
-        onError: (e) => (out.textContent = JSON.stringify(e, null, 2)),
+        onError: (e) => (document.getElementById('error').textContent = `${e.code}: ${e.message}`),
       });
-      engine.setDebug(true);
+      engine.setDebug(true); // frames-per-second counter in the stage corner
       engine.start();
     </script>
   </body>
