@@ -12,9 +12,12 @@ import { createRateTracker } from './lib/rate.js';
 import { createFormTracker } from './lib/form.js';
 import { createFatigueTracker } from './lib/fatigue.js';
 import { createStage } from './ui/stage.js';
+import { loadVideo } from './pose/videoSource.js';
+import { checkSetup, checkFrame } from './lib/setupCheck.js';
 
 const STATE_INTERVAL_MS = 100;
 const FRAME_STALE_MS = 1000; // no frame for this long → not ready
+const SETUP_FRAMES_MS = 1500; // recent frames kept for the setup check
 
 const defaultTimers = {
   setInterval: (fn, ms) => globalThis.setInterval(fn, ms),
@@ -78,6 +81,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
   const t = { ...defaultTimers, ...(timers || {}) };
   const query = search ?? globalThis.location?.search ?? '';
   const isSim = new URLSearchParams(query).get('sim') === '1';
+  const videoPath = isSim ? null : new URLSearchParams(query).get('video') || null;
   const simParams = readSimParams(query);
 
   const signal = createMotionSignal(config);
@@ -100,6 +104,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
   let lastFrameWall = null;
   let lastSampleValid = false;
   let compressions = 0;
+  let recentFrames = []; // for the setup check
 
   let fpsCount = 0;
   let fpsWindowStart = 0;
@@ -114,6 +119,9 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
     const wall = t.now();
     lastFrameT = frame.t;
     lastFrameWall = wall;
+
+    recentFrames.push(frame);
+    while (recentFrames.length && recentFrames[0].t < frame.t - SETUP_FRAMES_MS) recentFrames.shift();
 
     const sample = signal.push(frame);
     lastSampleValid = sample.valid;
@@ -152,7 +160,7 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
       rateZone: rate.zone(cpm),
       issues: { ...form.getLiveIssues(), depth: null },
       fatigue: fatigue.getState(),
-      setup: { ok: true, checks: [] },
+      setup: ready ? checkSetup(recentFrames, config) : { ok: false, checks: checkFrame(null, config) },
     };
   }
 
@@ -193,6 +201,17 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
     } catch {
       // autoplay is muted; the tracker waits for frames either way
     }
+    await startTracker(gen);
+  }
+
+  // ?video=<path>: a looping local clip through the same pipeline as the camera.
+  async function startVideo(gen) {
+    await loadVideo(view.video, videoPath);
+    if (gen !== generation) return;
+    await startTracker(gen);
+  }
+
+  async function startTracker(gen) {
     const tracker = createPoseTracker(view.video, handleFrame);
     await tracker.load();
     if (gen !== generation) {
@@ -217,12 +236,14 @@ export function createEngine({ stage, onState, onCompression, onError, timers, s
       const gen = ++generation;
       lastFrameT = null;
       lastFrameWall = null;
+      recentFrames = [];
       fpsWindowStart = t.now();
       try {
-        view = createStage(stage || document.createElement('div'), { simulated: isSim });
+        view = createStage(stage || document.createElement('div'), { simulated: isSim, mirror: !isSim && !videoPath });
         view.setDebug(debug);
         stateTimer = t.setInterval(emitState, STATE_INTERVAL_MS);
         if (isSim) startSim();
+        else if (videoPath) await startVideo(gen);
         else await startCamera(gen);
       } catch (err) {
         if (gen !== generation) return;

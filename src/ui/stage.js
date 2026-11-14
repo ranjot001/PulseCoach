@@ -5,13 +5,14 @@ import { createChart } from './chart.js';
 
 /**
  * @param {HTMLElement} container
- * @param {{simulated?: boolean}} [opts] simulated: dark background and a SIMULATED badge, no video
+ * @param {{simulated?: boolean, mirror?: boolean}} [opts] simulated: dark background and a
+ *   SIMULATED badge, no video. mirror: flip like a selfie view (live camera only).
  */
-export function createStage(container, { simulated = false } = {}) {
+export function createStage(container, { simulated = false, mirror = !simulated } = {}) {
   const root = document.createElement('div');
   root.className = simulated ? 'pc-stage pc-stage--sim' : 'pc-stage';
   const layer = document.createElement('div');
-  layer.className = simulated ? 'pc-stage__layer' : 'pc-stage__layer pc-stage__mirror';
+  layer.className = mirror ? 'pc-stage__layer pc-stage__mirror' : 'pc-stage__layer';
   const video = document.createElement('video');
   video.className = 'pc-stage__video';
   video.autoplay = true;

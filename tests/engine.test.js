@@ -67,7 +67,9 @@ describe('engine on the simulator (?sim=1)', () => {
     expect(last.ready).toBe(true);
     expect(last.personVisible).toBe(true);
     expect(Object.keys(last.issues).sort()).toEqual(['depth', 'elbows', 'position', 'recoil']);
-    expect(last.setup).toEqual({ ok: true, checks: [] });
+    expect(last.setup.ok).toBe(true);
+    expect(last.setup.checks.map((c) => c.id)).toEqual(['person', 'visible', 'side-on', 'distance', 'in-frame']);
+    expect(last.setup.checks.every((c) => c.pass && typeof c.hint === 'string')).toBe(true);
   });
 
   it('a 30 s session at 110 through the whole engine: right count and rate', async () => {
@@ -308,5 +310,37 @@ describe('fatigue and turns (?sim=1)', () => {
     d.advance(100);
     d.engine.stop();
     expect(d.states.at(-1).fatigue).toEqual({ slipping: false, signs: [] });
+  });
+
+});
+
+describe('setup check in the engine', () => {
+  it('?sim=1 reports setup.ok within two seconds', async () => {
+    const timers = fakeTimers();
+    const states = [];
+    const engine = createEngine({ stage: document.createElement('div'), search: '?sim=1', timers, onState: (s) => states.push({ ...s, at: Date.now() }) });
+    const t0 = Date.now();
+    await engine.start();
+    expect(states[0].setup.ok).toBe(false); // nothing seen yet
+    vi.advanceTimersByTime(2000);
+    engine.stop();
+    const firstOk = states.find((s) => s.setup.ok);
+    expect(firstOk).toBeDefined();
+    expect(firstOk.at - t0).toBeLessThanOrEqual(2000);
+    expect(states.at(-1).setup.ok).toBe(true);
+  });
+
+  it('before any frame, setup is not ok and lists the five checks failing', async () => {
+    const states = [];
+    const engine = createEngine({
+      stage: document.createElement('div'), search: '',
+      mediaDevices: { getUserMedia: () => Promise.reject(Object.assign(new Error(), { name: 'NotFoundError' })) },
+      onState: (s) => states.push(s),
+    });
+    await engine.start();
+    engine.stop();
+    expect(states.at(-1).setup.ok).toBe(false);
+    expect(states.at(-1).setup.checks).toHaveLength(5);
+    expect(states.at(-1).setup.checks[0]).toEqual({ id: 'person', pass: false, hint: 'Step into view' });
   });
 });

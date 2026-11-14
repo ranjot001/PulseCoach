@@ -63,3 +63,22 @@
 - Config: added the five `FATIGUE_*` values from CLAUDE.md to the Track A section, unchanged.
 - Sweep: 180 fresh 60 s turns (cpm 100/110/120, 1–3× noise, 20 seeds) never falsely slipped. `fatigue=1`: slipping in 20/20 turns at 30–33 s with 'shallower' and 'slower'. `fatigue=0.5` stays under the thresholds by design (12.5% and 6/min).
 - Human checks still to do: `/dev/stage.html` with the camera, press "Start session", 15 s of good compressions then clearly smaller and slower → "slipping" within about six pushes with the right signs; "Mark turn" then good compressions → slipping clears, new baseline after 10 s; 40 s of steady good compressions → never slipping (if it does, raise the `FATIGUE_*` thresholds).
+
+## A6 Setup check and video source (on `track-a`)
+
+- Built: `src/lib/setupCheck.js`: `checkFrame(frame, config)` and `checkSetup(recentFrames, config)` → `{ ok, checks }` with `person`, `visible`, `side-on`, `distance`, `in-frame` (ids match Track B's labels; hints exactly as in the task). `ok` once every check has passed on every frame for `SETUP_HOLD_MS`. The engine keeps the last 1.5 s of frames and sends the real result in `state.setup`. Before any frame it is `{ ok: false, checks: [all five failing] }`.
+- **Deliberate change to `visible`:** the task says all shoulders, elbows, wrists and hips at 0.6 or more. Side-on, the far arm is hidden behind the body, so a real learner would never pass. It now needs the nearer arm (shoulder, elbow and wrist) and at least one hip at 0.6 or more.
+- `src/pose/videoSource.js` `loadVideo(video, src)`: `?video=<path>` plays a looping, muted local clip through the same tracker as the camera, unmirrored (the live camera stays mirrored). A clip that errors or does not load within 10 s → `onError` with `no-camera`. Tested with an injected fake video element (load, loop, play, error, timeout) and in the engine with jsdom's video element (error path, camera never opened). Not tried in a browser with a real clip: no browser was available to me.
+- Config: added `SETUP_MIN_VISIBILITY 0.6`, `SETUP_SIDE_ON_MAX 0.45`, `SETUP_TORSO_MIN 0.15`, `SETUP_TORSO_MAX 0.45`, `SETUP_MARGIN 0.02`, `SETUP_HOLD_MS 1000` to the Track A section (the task's numbers).
+- **Edited a Track B file, with the person's OK:** `tests/main.test.js` clicked Start the instant the page loaded, which only worked while the engine sent the placeholder `setup: { ok: true, checks: [] }`. One line added before the click: `await vi.advanceTimersByTimeAsync(1500)` so the setup check sees a second of good simulated frames. Track B: please keep that line.
+- `?sim=1` reaches `setup.ok` at about 1 s.
+
+### Recording the backup clip (`public/demo.mp4`)
+
+- Laptop on a table at chest height, about 2 m away, landscape. Good light from the front or side, plain background, nobody else in the picture.
+- Compressor kneels **side-on** to the camera beside a firm pillow on the floor, head, arms and hips all in view. Check the home-screen checklist is all green before recording.
+- One relay: compressor 1 does about 30 s of good compressions at the 110 beat, then lets their form slip for the last 10 s (clearly smaller and slower pushes). Then a switch: compressor 1 moves out of view, compressor 2 kneels in within 5 s and does about 30 s of good compressions.
+- Keep it under about 90 s. Record with the laptop camera (QuickTime "New Movie Recording" on a Mac) and export as `.mp4` (H.264). Save it as `public/demo.mp4`; files in `public/` are served at `/`.
+- Try it with `?video=/demo.mp4`: it should count like the live camera and show slipping near the end of the first turn. Track B's drill calls `markTurn()` at the switch.
+
+- Human checks still to do: kneel in position and watch the home checklist tick; turn to face the camera → side-on fails with its hint. Record the clip above and run `?video=/demo.mp4`.

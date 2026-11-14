@@ -27,6 +27,13 @@ export const config = {
   FATIGUE_TRAVEL_DROP: 0.2, // pushes this much smaller than baseline: 'shallower'
   FATIGUE_RATE_DROP_CPM: 8, // rate this much below baseline: 'slower'
   FATIGUE_ELBOW_DROP: 0.3, // share of locked elbows this much below baseline: 'elbows'
+  // Setup check (task A6)
+  SETUP_MIN_VISIBILITY: 0.6, // near arm and a hip must be at least this visible
+  SETUP_SIDE_ON_MAX: 0.45, // shoulder gap ÷ torso length below this counts as side-on
+  SETUP_TORSO_MIN: 0.15, // torso length ÷ frame height: closer than this → "Move a little closer"
+  SETUP_TORSO_MAX: 0.45, // further than this → "Move back a little"
+  SETUP_MARGIN: 0.02, // upper body must be this far inside the frame edges (share of frame)
+  SETUP_HOLD_MS: 1000, // all checks pass continuously this long before setup is ok
 
   // ─── Track B · Coach and session ───────────────────────────────────────
   METRONOME_BPM: 110,

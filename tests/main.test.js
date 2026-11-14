@@ -38,6 +38,7 @@ describe('practice loop with ?sim=1', () => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
       expect(debugLine.hidden).toBe(true);
     }
+    await vi.advanceTimersByTimeAsync(1500); // A6: let the setup check see a second of good frames
     document.querySelector('#screen-home .btn-primary').click();
 
     expect(visible('countdown')).toBe(true);
