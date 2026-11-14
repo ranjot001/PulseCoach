@@ -22,6 +22,9 @@ export const config = {
 
   // ─── Track B · Coach and session ───────────────────────────────────────
   METRONOME_BPM: 110,
+  METRONOME_VOLUME: 0.8, // 0..1
+  RATE_WARN_MARGIN: 10, // cpm outside the target band that still shows amber
+  GAUGE_MIN: 60, GAUGE_MAX: 160, // cpm range drawn on the rate gauge
   SESSION_SECONDS: 30,
   VOICE_COOLDOWN_MS: 3500,
   VOICE_REPEAT_MS: 8000,

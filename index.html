@@ -7,12 +7,20 @@
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <main style="max-width: 960px; margin: 0 auto; padding: 1rem">
-      <h1 id="title">PulseCoach</h1>
-      <div id="stage"></div>
-      <pre id="readout" style="font-size: 1.5rem"></pre>
-      <p id="footer" style="color: var(--muted)"></p>
-    </main>
+    <div class="app">
+      <header class="topbar">
+        <h1 id="title" class="brand">PulseCoach</h1>
+        <div class="controls">
+          <span id="beat-dot" class="beat-dot" aria-hidden="true"></span>
+          <button id="metronome-toggle" class="btn" type="button" aria-pressed="false">Metronome off</button>
+        </div>
+      </header>
+      <main class="practice">
+        <div id="stage" class="stage-panel"></div>
+        <div id="hud" class="hud"></div>
+      </main>
+      <footer id="footer" class="footer"></footer>
+    </div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
