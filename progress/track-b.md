@@ -128,7 +128,7 @@
 - `src/main.js`: the drill ends with `summariseRelay` → `renderRelayResults`; relay leaderboard entries use the compression-weighted average rate.
 - Tests: relay part of `tests/score.test.js`, `tests/relayResults.test.js`, leaderboard modes in `tests/leaderboard.test.js`, and `tests/main-relay.test.js` now ends on the relay results screen and saves a `<b>x</b>` team name as literal text with a Relay tag.
 
-**Fit at 1366×768**: not measured in a browser (none available). Built to fit: a fixed-height three-column grid with `overflow: hidden`; the tallest column is estimated at ~460 px of the ~640 px available. A very long debrief card is clipped rather than scrolling the page.
+**Fit at 1366×768: measured in WebKit.** A small Swift program (kept outside the repo) loads the `vite preview` build in a `WKWebView` at exactly 1366×768, seeds a worst-case leaderboard (10 entries, 12-character names), runs a `?sim=1&turnSeconds=2` drill to the relay results and measures. The first run found two real problems: leaderboard rows wrapped (only 7 of 10 visible) and the Save button was cut off. Fixed in `src/styles.css` (one line per leaderboard row with CSS-counter rank numbers, name field allowed to shrink). Re-measured: page 768 px tall and 1366 px wide (no scroll either way), no element clipped, 10/10 leaderboard rows visible, Save inside its column. A very long debrief card would be clipped rather than scroll the page.
 
 **Config**: none changed.
 
@@ -136,5 +136,4 @@
 - A drill in the simulator: the numbers on the results screen match what happened. Once A5 is on `main`, `?sim=1&fatigue=1`: compressor 1 shows a slipping time and an early switch.
 - Two people at the camera with one deliberately slow switch: the pause shows red and the compression fraction drops.
 - Save a team name and reload: still on the leaderboard with a Relay tag.
-- Check at 1366×768 that the relay results do not scroll.
 - Then say "ship it".
