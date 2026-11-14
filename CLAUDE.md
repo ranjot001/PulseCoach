@@ -1,6 +1,8 @@
 # PulseCoach
 
-A web app that coaches CPR chest compressions using only a laptop webcam. The learner kneels over a firm pillow, side-on to the camera. The app tracks their body, counts compressions, checks rate and form, speaks corrections, and scores a 30-second session. It covers adult hands-only CPR.
+A web app that trains CPR as a team relay using only a laptop webcam. Two learners take turns kneeling over a firm pillow, side-on to the camera. The app tracks whoever is compressing. It counts compressions, checks rate and form, notices when compressions start to slip, and calls the switch. A simulated monitor interrupts for rhythm checks, and the app times every hands-off pause. The drill ends with a team score, a timeline of the whole relay and a debrief for each compressor. An educator view lists every saved drill. A 30-second solo practice mode is kept as well. It covers adult hands-only CPR.
+
+**Why a relay.** After a 911 call, help takes a median of 7 minutes to arrive, and 13 in rural areas. In manikin studies, compression quality starts to drop after about one minute, and rescuers do not notice for about three. Guidelines say to switch compressors every 2 minutes, or sooner if tired, to keep pauses under 10 seconds, and to keep compressions going at least 80% of the time. The pitch line is "CPR is a relay, not a sprint." The users are nurses and code teams, who rotate compressors as standard practice.
 
 This is a 6-hour hackathon build by a team of three. A feature that works reliably in a live demo beats a cleverer one that sometimes fails. When in doubt, choose the simpler option and move on.
 
@@ -10,11 +12,11 @@ Three people build at the same time, one track each. Every track owns its own fi
 
 | Track | Builds | Branch |
 |---|---|---|
-| A · Motion engine | Camera, body tracking, compression detection, form checks | `track-a` |
-| B · Coach and session | Practice screen, metronome, voice, score, leaderboard | `track-b` |
-| C · Debrief and launch | Coaching text after each session, public link, pitch kit | `track-c` |
+| A · Motion engine | Camera, body tracking, compression detection, form checks, the fatigue signal | `track-a` |
+| B · Coach and drill | Practice screen, relay drill, metronome, voice, score, leaderboard | `track-b` |
+| C · Debrief and launch | Debrief for each compressor and the team, public link, pitch kit | `track-c` |
 
-- Tasks are in `tasks/`. `00-scaffold.md` comes first and is shared. After that, each track runs its own tasks in order: `A1`, `A2`, and so on.
+- Tasks are in `tasks/`. `00-scaffold.md` comes first and is shared. After that, each track runs its own tasks in order: `A1`, `A2`, and so on. `tasks/README.md` lists the order.
 - Work on exactly one task per session: the one you are given.
 - Each task file has a **Done when** checklist. The task is finished only when every item is verified and your final output shows `npm test` and `npm run build` passing.
 - Items under **Human check** need a real webcam and a person. You cannot verify them. Leave them for the person and list them in your final message.
@@ -25,9 +27,9 @@ Three people build at the same time, one track each. Every track owns its own fi
 
 | Track | Files |
 |---|---|
-| A | `src/engine.js`, `src/pose/`, `src/lib/geometry.js`, `src/lib/signal.js`, `src/lib/compressionDetector.js`, `src/lib/rate.js`, `src/lib/form.js`, `src/lib/depth.js`, `src/lib/setupCheck.js`, `src/ui/stage.js`, `src/ui/stage.css`, `src/ui/overlay.js`, `src/ui/chart.js`, `dev/stage.html`, `public/models/` |
-| B | `index.html`, `src/main.js`, `src/styles.css`, `src/copy.js`, `src/ui/hud.js`, `src/ui/home.js`, `src/ui/results.js`, `src/ui/leaderboard.js`, `src/audio/`, `src/lib/feedback.js`, `src/lib/score.js` |
-| C | `api/`, `src/debrief/`, `dev/debrief.html`, `vite.config.js`, `vercel.json`, `.env.example`, `README.md`, `docs/` |
+| A | `src/engine.js`, `src/pose/`, `src/lib/geometry.js`, `src/lib/signal.js`, `src/lib/compressionDetector.js`, `src/lib/rate.js`, `src/lib/form.js`, `src/lib/fatigue.js`, `src/lib/setupCheck.js`, `src/ui/stage.js`, `src/ui/stage.css`, `src/ui/overlay.js`, `src/ui/chart.js`, `src/ui/pushBars.js`, `dev/stage.html`, `public/models/` |
+| B | `index.html`, `src/main.js`, `src/styles.css`, `src/copy.js`, `src/ui/hud.js`, `src/ui/home.js`, `src/ui/results.js`, `src/ui/relayResults.js`, `src/ui/timeline.js`, `src/ui/leaderboard.js`, `src/audio/`, `src/history.js`, `src/lib/feedback.js`, `src/lib/score.js`, `src/lib/relay.js`, `src/lib/timeline.js`, `src/lib/flow.js` |
+| C | `api/`, `src/debrief/`, `src/educator/`, `educator.html`, `dev/debrief.html`, `vite.config.js`, `vercel.json`, `.env.example`, `README.md`, `docs/` |
 | Shared | `package.json`, `src/config.js`, `tests/fixtures/`, `CLAUDE.md`, `TEAM.md`, `tasks/` |
 
 - Each track also owns the tests for its own files. Name a test after the file it tests, such as `tests/signal.test.js`.
@@ -61,6 +63,20 @@ Three people build at the same time, one track each. Every track owns its own fi
 
 Everything in `src/lib/` is pure logic: no DOM, no timers, no browser APIs. That is what makes it testable without a camera.
 
+## The relay drill
+
+How the drill runs, so every track builds the same thing:
+
+1. A countdown, then compressor 1 starts. The camera tracks one person at a time, so the waiting compressor stays out of its view until the switch. The app does not recognise faces or tell people apart; it assigns turns in order.
+2. Each turn lasts `DRILL_TURN_SECONDS`. The guideline is 2 minutes; the default is shorter so the demo fits in a pitch.
+3. A turn ends early when the compressor's compressions have been slipping for `EARLY_SWITCH_MS`, and at least `MIN_TURN_SECONDS` have passed. The voice says to switch now.
+4. At every switch, the voice says "Stop compressions. Rhythm check." The screen shows a pause timer that counts up: green, then amber after `PAUSE_WARN_SEC`, then red after `PAUSE_MAX_SEC`. After `RHYTHM_CHECK_MS`, the voice says "Switch compressors. Resume now." The pause ends at the next compression.
+5. After `DRILL_TURNS` turns, the results show the team score, the compression fraction, every pause, and each compressor's turn, followed by the debrief.
+
+**Slipping** means a compressor has dropped clearly below their own level from the start of their turn: smaller pushes, a slower rate, or bending elbows. The app compares each person with themselves, never with a fixed depth in centimetres.
+
+**Hands-off time** is the time before the first compression, every gap between compressions longer than `PAUSE_MIN_MS`, and the time after the last compression until the drill ends. **Compression fraction** is the percentage of the drill that was not hands-off.
+
 ## Contract 1: the engine (Track A provides, Track B uses)
 
 ```js
@@ -75,8 +91,9 @@ const engine = createEngine({
 
 await engine.start();   // source comes from the address: ?sim=1, ?video=<path>, otherwise the camera
 engine.stop();
-engine.reset();         // zero the counters before a new session
+engine.reset();         // zero the counters before a new session; also starts a fresh turn
 engine.markRest();      // call when the countdown ends; records the resting shoulder height
+engine.markTurn();      // call when a switch begins; the next compressions set the new compressor's own baseline
 engine.setDebug(true);  // show or hide the debug chart and frame counter
 ```
 
@@ -93,7 +110,11 @@ engine.setDebug(true);  // show or hide the debug chart and frame counter
     elbows,        // true while the check is failing
     position,      // true while the check is failing
     recoil,        // true while the check is failing
-    depth,         // null, 'shallow' or 'deep'; null until the depth task ships
+    depth,         // always null; absolute depth is not measured
+  },
+  fatigue: {
+    slipping,      // true while this compressor is clearly below their own baseline
+    signs,         // the reasons, from 'shallower', 'slower', 'elbows'; [] when not slipping
   },
   setup: { ok, checks },   // checks: [{ id, pass, hint }]; { ok: true, checks: [] } until the setup task ships
 }
@@ -106,40 +127,83 @@ engine.setDebug(true);  // show or hide the debug chart and frame counter
   index, tBottom, tTop, travel, intervalMs,
   elbowAngleDeg, armLeanDeg, recoilRatio,
   elbowsLocked, aligned, fullRecoil,
-  depthCm          // number, or null until the depth task ships
+  depthCm,         // always null
+  travelRatio      // this push's travel divided by the compressor's own baseline; null while the baseline is being set
 }
 ```
 
-The scaffold ships this exact interface backed by a fake engine that invents plausible state and events. Track A replaces the inside task by task and never changes the interface. Track B builds against it from the first minute.
+`markTurn()`, `fatigue` and `travelRatio` arrive with task A5. Until that is on `main`, code that uses them must cope with an engine that lacks them: call `engine.markTurn?.()`, treat a missing `fatigue` as `{ slipping: false, signs: [] }`, and a missing `travelRatio` as `null`.
 
-Simulator settings, read from the address in every version of the engine: `cpm` (default 110), `bend` (degrees of elbow bend), `lean` (degrees of arm lean), `recoil` (0 to 1), `travel` (torso units).
+The scaffold shipped this interface backed by a fake engine. Track A replaces the inside task by task, and changes the interface only by adding to it as agreed here.
+
+Simulator settings, read from the address: `cpm` (default 110), `bend` (degrees of elbow bend), `lean` (degrees of arm lean), `recoil` (0 to 1), `travel` (torso units), `fatigue` (0 = never tires, 1 = from about 15 seconds into each turn, pushes shrink and the rate drops until the compressor is clearly slipping by about 35 seconds), and `swap` (seconds the simulated compressor stops after `markTurn()` before a fresh one starts; default 5).
 
 ## Contract 2: session stats (Track B provides, Track C uses)
 
-`summarise(events, durationSec, config)` in `src/lib/score.js` returns:
+**Solo stats and per-turn stats.** `summarise(events, durationSec, config)` in `src/lib/score.js` returns:
 
 ```js
 {
   durationSec, compressions, avgRate,
   pctRateInRange, pctElbowsLocked, pctAligned, pctRecoil,   // 0 to 100
-  avgDepthCm,      // number or null
+  avgDepthCm,      // number or null; null now that depth is not measured
   rateTrend,       // 'steady' | 'slowing' | 'speeding'
   score,           // 0 to 100
   grade            // short label
 }
 ```
 
-Sample objects in this shape are in `tests/fixtures/stats.js`.
+**Relay stats.** `summariseRelay(drill, config)` in `src/lib/score.js` returns:
+
+```js
+{
+  mode: 'relay',
+  durationSec,          // the whole drill, pauses included
+  compressions,         // all turns together
+  compressionFraction,  // 0 to 100
+  switches,             // number of compressor changes
+  earlySwitches,        // switches called by the slipping check before the turn's time was up
+  avgSwitchSec,         // mean hands-off seconds at a switch, or null with no switch
+  longestPauseSec,      // longest hands-off gap anywhere in the drill
+  score,                // team score, 0 to 100
+  grade,                // short label
+  turns: [              // one per turn, in order
+    {
+      compressor,       // 1 or 2
+      // ...every field of the solo stats above, for this turn...
+      slippedAtSec,     // seconds into the turn when slipping began, or null
+      signs,            // subset of 'shallower', 'slower', 'elbows' seen while slipping
+    },
+  ],
+}
+```
+
+Solo stats have no `mode` field. Consumers treat a missing `mode` as solo. Samples are in `tests/fixtures/stats.js` (solo) and `tests/fixtures/relayStats.js` (relay).
 
 ## Contract 3: the debrief card (Track C provides, Track B uses)
 
 ```js
 import { renderDebriefCard } from './debrief/card.js';
 
-renderDebriefCard(container, stats);   // shows quick tips at once, then swaps in the AI text when it arrives
+renderDebriefCard(container, stats);   // solo or relay stats; shows quick tips at once, then swaps in the AI text when it arrives
 ```
 
 The card never throws and never leaves the container empty.
+
+## Contract 4: drill history (Track B writes, Track C reads)
+
+Saved relay drills live in `localStorage` under the key `pulsecoach.history.v1`, as a JSON array, newest first, with at most `HISTORY_SIZE` entries:
+
+```js
+{
+  id,        // short unique string
+  savedAt,   // ISO date and time
+  team,      // the team name as typed; user text, so render it with textContent
+  stats,     // relay stats, exactly as in Contract 2
+}
+```
+
+Track B appends an entry when a team name is saved on the relay results screen. Track C's educator view reads the key, checks each entry, and skips any that fail. Nothing in the history leaves the browser. Samples are in `tests/fixtures/history.js`.
 
 ## Other shared definitions
 
@@ -157,16 +221,38 @@ Landmark indices used: shoulders 11 and 12, elbows 13 and 14, wrists 15 and 16, 
 
 **Motion signal.** Shoulder-midpoint height in pixels divided by torso length in pixels (shoulder midpoint to hip midpoint). The unit is "torso units", so the signal does not depend on how far the learner is from the camera. Image y grows downward, so pushing down makes the signal larger.
 
-**Colours.** `src/styles.css` defines `--bg`, `--fg`, `--muted`, `--good`, `--warn` and `--bad`. Every track uses these variables and no other colours for status.
+**Colours and design tokens.** `src/styles.css` defines these on `:root`. Every track uses them and nothing else for colour, corners and fonts. The look to match is `tasks/design/relay-mock.png`, with the source in `tasks/design/relay-mock.html`.
+
+```css
+--bg: #070b12;         /* page */
+--surface: #0e1520;    /* cards and panels */
+--surface-2: #162031;  /* raised parts, tracks, inputs */
+--line: #24324a;       /* hairlines and borders */
+--fg: #f2f6fa;
+--muted: #8b99ad;
+--accent: #5cc8ff;     /* neutral data and links; never a status */
+--good: #2fd27a;
+--warn: #ffb224;
+--bad: #ff4d5e;
+--radius: 18px;
+--font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+--font-num: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+```
+
+Status is shown only with `--good`, `--warn` and `--bad`. The tokens beyond the first six arrive in `src/styles.css` with task B7. Until then, Tracks A and C write them with the value above as a fallback, such as `var(--surface, #0e1520)`, so their parts look right either way.
 
 ## CPR targets (adult, hands-only)
 
 | Measure | Target |
 |---|---|
 | Rate | 100 to 120 compressions per minute |
-| Depth | 5 to 6 cm |
 | Recoil | Chest fully released after every compression |
 | Arms | Elbows locked, shoulders directly over hands |
+| Switching | Change compressors every 2 minutes, or sooner if tired |
+| Pauses | Under 10 seconds |
+| Compression fraction | 80% of the time or more (60% at the very least) |
+
+Adult depth is 5 to 6 cm, but the app does not measure absolute depth. It tracks each compressor's push size against their own start.
 
 ## Starting values for `src/config.js`
 
@@ -180,7 +266,7 @@ RATE_WINDOW: 5, RATE_STALE_MS: 2000,
 ELBOW_LOCKED_DEG: 160, ARM_LEAN_MAX_DEG: 15, RECOIL_MIN_RATIO: 0.85,
 MIN_VISIBILITY: 0.5,
 TORSO_CM: 50, DEPTH_MIN_CM: 5, DEPTH_MAX_CM: 6, DEPTH_TOLERANCE_CM: 0.5,
-FEATURES: { depth: false },
+FEATURES: { depth: false },    // stays false: absolute depth is out of the product
 
 // Track B
 METRONOME_BPM: 110,
@@ -192,18 +278,56 @@ SCORE_WEIGHTS: { rate: 40, elbows: 20, alignment: 20, recoil: 20, depth: 15 },
 DEBRIEF_TIMEOUT_MS: 6000
 ```
 
+Added for the relay drill:
+
+```js
+// Track A (task A5)
+FATIGUE_BASELINE_MS: 10000,    // the first 10 s of compressions in a turn set the compressor's own baseline
+FATIGUE_WINDOW: 6,             // recent compressions compared with the baseline
+FATIGUE_TRAVEL_DROP: 0.2,      // pushes this much smaller than baseline: 'shallower'
+FATIGUE_RATE_DROP_CPM: 8,      // rate this much below baseline: 'slower'
+FATIGUE_ELBOW_DROP: 0.3,       // share of locked elbows this much below baseline: 'elbows'
+
+// Track B (tasks B5 and B6)
+DRILL_TURNS: 2,                // turns in one drill; compressors alternate 1, 2, 1, 2
+DRILL_TURN_SECONDS: 40,        // the guideline is 120; shorter so the demo fits in a pitch
+MIN_TURN_SECONDS: 15,          // no early switch before this
+EARLY_SWITCH_MS: 3000,         // slipping must last this long before the app calls the switch
+RHYTHM_CHECK_MS: 3000,         // simulated monitor analysis at each switch
+PAUSE_MIN_MS: 1500,            // a gap between compressions longer than this is hands-off time
+PAUSE_WARN_SEC: 5, PAUSE_MAX_SEC: 10,
+CCF_MIN: 60, CCF_TARGET: 80,   // compression fraction: floor and target, in percent
+RELAY_WEIGHTS: { technique: 60, handsOff: 40 },
+```
+
+Added for the extra features:
+
+```js
+// Track A (task A7)
+PUSH_BARS: 40,                 // compressions shown in the push-size strip
+
+// Track B (tasks B8 and B9)
+HISTORY_SIZE: 50,              // saved drills kept in the history
+FLOW_RISE: 0.12,               // each good compression closes this share of the gap to full
+FLOW_POOR_FACTOR: 0.5,         // a poor compression counts this much
+FLOW_HALF_LIFE_MS: 2500,       // the flow meter halves this fast when compressions stop
+FLOW_WARN: 50, FLOW_BAD: 25,   // meter colour limits
+```
+
 These are starting points. People will tune them at the webcam, so never hard-code a threshold anywhere else.
 
 ## Rules that apply to every task
 
 - **Pixels before geometry.** Normalised x and y have different scales on a 16:9 frame. Convert landmarks to pixels before computing any distance or angle.
 - **Timestamps.** MediaPipe `detectForVideo` needs strictly increasing timestamps. Skip a frame when the video time has not advanced.
-- **Never break the simulator.** `?sim=1` must keep working after every task. It is how you verify the app without a camera, how the other tracks build without waiting, and the backup for the live demo.
+- **Never break the simulator.** `?sim=1` must keep working after every task. It is how you verify the app without a camera, how the other tracks build without waiting, and the backup for the live demo. Once A5 ships, `?sim=1&fatigue=1` must show a compressor slipping and the app calling an early switch.
 - **Never break a contract.** If a contract has to change, stop and tell the person. All three tracks must agree first.
 - **Runs offline.** The page must load and work with no internet, apart from the AI debrief, which has a fallback. No CDN scripts, no web fonts. Model and wasm files are served from `public/`.
 - **No secrets in the browser.** The API key is read only inside `api/debrief.js` from an environment variable. Never print, log or commit it.
 - **Readable from 3 metres.** Judges watch from a distance. Dark background, very large numbers, high contrast, and one consistent colour code: green for good, amber for nearly, red for fix this.
-- **Honest wording.** This is a practice aid for adult hands-only CPR. Say "estimated depth". Never say certified, accurate, clinical or medical-grade. Do not give medical advice beyond compression technique.
-- **Render user text safely.** Leaderboard names are set with `textContent`, never `innerHTML`.
+- **Honest wording.** This is a practice aid for adult hands-only CPR. Call the fatigue check "slipping" or "dropping off"; it compares a person with their own start and is not a measurement of force or depth. When quoting fatigue research, say it comes from manikin studies. Never say certified, accurate, clinical or medical-grade. Do not give medical advice beyond compression technique.
+- **The flow meter is a picture.** It shows why pauses matter. It is not a measurement of anyone's blood flow, and wherever it appears the words "illustration, not a measurement" appear with it.
+- **Future work stays in the pitch.** A sensor pad for measured depth, and patient profiles for adults, children and infants, are plans for the pitch only. Do not build them, and do not add a patient selector to the app.
+- **Render user text safely.** Leaderboard and team names are set with `textContent`, never `innerHTML`.
 - **Tests use synthetic data.** No test may need a camera, a network call or a real API key.
 - **Finish with proof.** End every task by running `npm test` and `npm run build` and showing the output.

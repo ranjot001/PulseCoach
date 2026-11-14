@@ -2,23 +2,25 @@
 
 Three people, three tracks, six hours. Each track owns its own files, so nobody waits on anybody and merges stay clean.
 
+**What we are building:** a two-person CPR relay drill. The camera notices when a compressor starts to slip, the app calls the switch, times every pause, and debriefs the team. The pitch line is "CPR is a relay, not a sprint."
+
 ## Tracks
 
 | Track | Lead | You build | Your first visible result |
 |---|---|---|---|
-| A · Motion engine | | Camera, body tracking, compression detection, form checks | A skeleton following you on the webcam |
-| B · Coach and session | | Practice screen, metronome, voice coaching, score, leaderboard | A live practice screen with a rate gauge |
-| C · Debrief and launch | | Coaching text after each session, the public link, the pitch and the user test | A debrief card with personal tips |
+| A · Motion engine | | Camera, body tracking, compression detection, form checks, the slipping signal | "slipping" appearing when your pushes fade |
+| B · Coach and drill | | Practice screen, relay drill, metronome, voice coaching, team score, leaderboard | Two people swapping while a pause timer runs |
+| C · Debrief and launch | | Team debrief after each drill, the public link, the pitch and the user test | A team debrief with a line for each compressor |
 
 Write each lead's name in the table once the team has agreed.
 
-In the pitch, each lead presents their own part: A explains how the camera measures compressions, B runs the live demo, and C presents the AI debrief and the user-test results.
+In the pitch, each lead presents their own part: A explains how the camera spots slipping, B runs the live relay demo with A as the second compressor, and C presents the team debrief and the user-test results.
 
 ## How the tracks fit together
 
-- Track A's engine turns the camera into numbers: a compression count, a rate, and form warnings.
-- Track B's screens show those numbers, speak corrections and score the session.
-- Track C's debrief card takes the session's score sheet and turns it into coaching text.
+- Track A's engine turns the camera into numbers: a compression count, a rate, form warnings, and whether the compressor is slipping.
+- Track B's drill runs the turns, calls rhythm checks and switches, times the pauses, and scores the team.
+- Track C's debrief card takes the team's score sheet and turns it into coaching text.
 
 The first task, `00-scaffold`, sets up all three connection points with stand-ins. From then on the app always runs, and each track swaps its stand-in for the real thing.
 
@@ -35,18 +37,18 @@ The first task, `00-scaffold`, sets up all three connection points with stand-in
 
 ## Timeline
 
+The first two hours went to the solo coach, which is built. From about 1:45 the work is the relay.
+
 | Clock | Track A | Track B | Track C |
 |---|---|---|---|
-| 0:00 to 0:20 | `00` Scaffold, shipped to `main` | Set up laptop, read `CLAUDE.md` | Set up laptop, read `CLAUDE.md` |
-| 0:20 to 1:00 | `A1`, start `A2` | `B1` | `C1`, start `C2` |
-| 1:00 to 2:00 | `A2`, `A3` | `B2`, start `B3` | `C2`, `C3`, start `C4` |
+| 0:00 to 1:45 | `00`, `A1` to `A3` (done) | `B1` to `B4` (done) | `C1`, `C2` (done) |
+| 1:45 to 2:00 | Pull the new plan. Start `A4` | Pull the new plan. Start `B5` | Pull the new plan. Ship `C2` |
 | **2:00** | **Sync 1.** Everyone ships. First full run with the real camera. | | |
-| 2:00 to 2:30 | `A4` | Finish `B3` | Finish `C4` |
-| **2:30** | **Sync 2.** The app is ready to demo. | | |
-| 2:30 to 3:30 | `A5`, then `A6` or tuning | `B4`, then fixes | User test with five people |
-| 3:30 to 4:00 | Tune thresholds on different people | Fixes from the user test | Results into the pitch |
+| 2:00 to 3:15 | `A4` (ship `A1` to `A4` together), then `A5` | `B5`, then `B6` | `C3`, then `C4`, then `C5` |
+| **3:15** | **Sync 2.** The relay drill is ready to demo. | | |
+| 3:15 to 4:00 | `A6`, `A7`, tune the `FATIGUE_*` values on different people | `B7`, then `B8`, `B9` | User test with five people, results into the pitch, then `C6` |
 | **4:00** | **Feature freeze.** Only fixes after this. | | |
-| 4:00 to 5:15 | Backup video, offline run-through | Big-screen check, demo run-throughs | Check the public link, final pitch |
+| 4:00 to 5:15 | Backup relay video, offline run-through | Big-screen check, demo run-throughs | Check the public link, final pitch |
 | 5:15 to 6:00 | Rehearse the pitch three times together, then submit | | |
 
 ## Rules
@@ -56,6 +58,7 @@ The first task, `00-scaffold`, sets up all three connection points with stand-in
 - **Say it out loud.** If a task is taking twice its time budget, tell the team. Someone may be able to unblock you in a minute.
 - **Sync points are for everyone.** At 2:00 and 2:30, stop, ship, pull, and run the app together on one laptop.
 - **Nothing new after 4:00.** A feature that is not finished by then is left out of the demo.
+- **One look.** Every screen follows `tasks/design/relay-mock.png`. Open it before you build anything a judge will see.
 
 ## Setting up your laptop
 
@@ -69,5 +72,5 @@ The first task, `00-scaffold`, sets up all three connection points with stand-in
 
 - Allow the camera and do the human checks.
 - Connect the repository to Vercel and add the API key there. The repository owner does this once.
-- Record the backup demo video.
+- Record the backup relay video, with two people.
 - Run the user test and write down the real results. Never put a number in the pitch that was not measured.
