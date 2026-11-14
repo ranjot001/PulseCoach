@@ -50,6 +50,11 @@ export const config = {
   CCF_MIN: 60, CCF_TARGET: 80, // compression fraction: floor and target, in percent
   RELAY_WEIGHTS: { technique: 60, handsOff: 40 },
   HISTORY_SIZE: 50, // saved drills kept in the history (Contract 4)
+  // Flow meter (task B9): a teaching picture, not a measurement
+  FLOW_RISE: 0.12, // each good compression closes this share of the gap to full
+  FLOW_POOR_FACTOR: 0.5, // a poor compression counts this much
+  FLOW_HALF_LIFE_MS: 2500, // the flow meter halves this fast when compressions stop
+  FLOW_WARN: 50, FLOW_BAD: 25, // meter colour limits
 
   // ─── Track C · Debrief and launch ──────────────────────────────────────
   DEBRIEF_TIMEOUT_MS: 6000,

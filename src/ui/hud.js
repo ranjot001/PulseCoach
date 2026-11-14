@@ -1,7 +1,7 @@
 // Practice-screen readouts, drawn from the engine's onState and onCompression.
 // The state → label/colour mapping lives in small pure functions at the top so it can be tested.
 import { config } from '../config.js';
-import { PRACTICE, RELAY } from '../copy.js';
+import { PRACTICE, RELAY, FLOW } from '../copy.js';
 
 /** Status colours map to the CSS variables --good, --warn, --bad. 'none' is muted. */
 
@@ -103,6 +103,49 @@ export function setTurnTitle(node, compressor, turn, turns) {
   setTitle(node, main, sub);
 }
 
+/** Flow meter colour: green at or above FLOW_WARN, amber below it, red below FLOW_BAD. */
+export function flowStatus(value, cfg = config) {
+  if (value < cfg.FLOW_BAD) return 'bad';
+  if (value < cfg.FLOW_WARN) return 'warn';
+  return 'good';
+}
+
+/** Live "On the chest" colour, the same rule as the results screen. */
+export function chestStatus(pct, cfg = config) {
+  if (pct >= cfg.CCF_TARGET) return 'good';
+  if (pct >= cfg.CCF_MIN) return 'warn';
+  return 'bad';
+}
+
+function setStatus(node, s) {
+  node.classList.remove('status-good', 'status-warn', 'status-bad', 'status-none');
+  node.classList.add(`status-${s}`);
+}
+
+/**
+ * The blood-flow bar with its label and the words "illustration, not a measurement", always shown.
+ * @returns {{ root: HTMLElement, set(value: number): void }}
+ */
+export function createFlowMeter(className = '', cfg = config) {
+  const root = el('section', `flow-meter status-bad ${className}`.trim());
+  const head = el('div', 'flow-head');
+  head.append(el('span', 'label', FLOW.heading), el('em', 'flow-note', FLOW.note));
+  const track = el('div', 'meter flow-track');
+  const fill = el('i', 'meter-fill flow-fill');
+  fill.style.width = '0%';
+  track.append(fill);
+  root.append(head, track);
+  return {
+    root,
+    set(value) {
+      const v = Math.max(0, Math.min(100, value));
+      fill.style.width = `${v.toFixed(1)}%`;
+      root.dataset.value = String(Math.round(v));
+      setStatus(root, flowStatus(v, cfg));
+    },
+  };
+}
+
 /** Width of the pause bar: the scale runs to two seconds past PAUSE_MAX_SEC. */
 export function pauseScaleEnd(cfg = config) {
   return cfg.PAUSE_MAX_SEC + 2;
@@ -139,14 +182,17 @@ export function createSwitchOverlay(root, cfg = config) {
   }
   pause.append(track, marks);
   const message = el('div', 'switch-text', '');
-  inner.append(label, timer, pause, message);
+  const flow = createFlowMeter('switch-flow', cfg);
+  inner.append(label, timer, pause, flow.root, message);
   root.replaceChildren(inner);
   root.hidden = true;
   let lastStatus = 'good';
   let lastMessage = null;
 
   return {
-    update(view) {
+    /** @param {object} view relay view  @param {number} [flowValue] the flow meter, drawn under the pause bar */
+    update(view, flowValue) {
+      if (Number.isFinite(flowValue)) flow.set(flowValue);
       const switching = view.phase === 'rhythmCheck' || view.phase === 'resume';
       root.hidden = !switching;
       document.body?.classList.toggle('is-switching', switching);
@@ -228,7 +274,16 @@ export function createHud(root, cfg = config) {
   const counterHeading = el('div', 'label hud-heading', PRACTICE.counterHeading);
   const counterNumber = el('div', 'num hud-counter-number', '0');
   counterCard.append(counterHeading, counterNumber);
-  duo.append(counterCard);
+  const chestCard = el('section', 'card hud-chest status-good');
+  const chestLine = el('div', 'hud-chest-line');
+  const chestNumber = el('div', 'num hud-chest-number', FLOW.chestValue(0));
+  chestLine.append(chestNumber, el('small', 'hud-chest-target', FLOW.chestTarget(cfg.CCF_TARGET)));
+  chestCard.append(el('div', 'label hud-heading', FLOW.chestHeading), chestLine);
+  chestCard.hidden = true;
+  duo.append(counterCard, chestCard);
+
+  const flowMeter = createFlowMeter('card hud-flow', cfg);
+  flowMeter.set(0);
 
   const chips = el('section', 'hud-chips');
   const chipNodes = {};
@@ -251,7 +306,7 @@ export function createHud(root, cfg = config) {
   cue.setAttribute('aria-live', 'polite');
   const status = el('div', 'hud-status', PRACTICE.statusLoading);
 
-  root.replaceChildren(rateCard, duo, chips, status, cue);
+  root.replaceChildren(rateCard, duo, flowMeter.root, chips, status, cue);
 
   let lastDepthCm = null;
   let lastDepthIssue = null;
@@ -317,6 +372,17 @@ export function createHud(root, cfg = config) {
     setCue(text, cueStatus = 'warn') {
       cue.textContent = text || '';
       setStatusClass(cue, text ? cueStatus : 'none');
+    },
+    /** Blood-flow meter, 0 to 100. */
+    setFlow(value) {
+      flowMeter.set(value);
+    },
+    /** Live "On the chest" percentage; null hides the card (solo practice). */
+    setChest(pct) {
+      chestCard.hidden = pct === null || pct === undefined;
+      if (chestCard.hidden) return;
+      chestNumber.textContent = FLOW.chestValue(pct);
+      setStatus(chestCard, chestStatus(pct, cfg));
     },
     setError(text) {
       status.textContent = text || '';

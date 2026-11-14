@@ -102,15 +102,17 @@ export function createRelay(cfg = defaultConfig, { turns = cfg.DRILL_TURNS, turn
       beginTurn();
     },
 
+    /** @returns {boolean} true when the compression counts for a turn (not during a rhythm check) */
     onCompression(event, now) {
       if (phase === 'resume') {
         phase = 'compressing';
         pauseStart = null;
       }
-      if (phase !== 'compressing') return;
+      if (phase !== 'compressing') return false;
       const turn = current();
       if (turn.startAt === null) turn.startAt = now;
       turn.events.push({ ...event, at: now });
+      return true;
     },
 
     /** @returns {string[]} prompts to give now */

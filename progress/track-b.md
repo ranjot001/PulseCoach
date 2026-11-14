@@ -184,3 +184,23 @@
 - Two people at the camera, fading on purpose in turn 1: the chart tells the same story.
 - Save a team name, then open `/educator.html` once it exists: the drill is listed.
 - Then say "ship it".
+
+## B9: Flow meter and live "On the chest" — done (2026-11-14)
+
+**Built**
+- `src/lib/flow.js`: `createFlowModel(config)` with `onCompression(event, now)`, `value(now)`, `reset()`. A good compression (full recoil, interval inside `RATE_MIN`–`RATE_MAX`) closes `FLOW_RISE` of the gap to 100; a poor one `FLOW_RISE × FLOW_POOR_FACTOR`. Decay: halves every `FLOW_HALF_LIFE_MS` once the gap since the last push is longer than the slowest in-target interval (60000 / `RATE_MIN` = 600 ms). **Why the grace:** decaying between every normal push gives a steady state of ~49, so "ten good compressions above 70" could never hold; with the grace, ten good pushes reach 72 and the meter only drains when compressions actually stop. Always 0–100.
+- HUD: "Blood flow" card with "illustration, not a measurement" always beside the label, a thick bar coloured by `FLOW_WARN` / `FLOW_BAD`, updated every 100 ms; the same bar (and words) on the switch overlay under the pause bar. Live "On the chest" card next to Compressions (relay only; hidden in solo), coloured like the results.
+- `src/lib/score.js`: `compressionFractionOf(drill)` is now the single rule for the result and the live card; the live card uses the drill so far with `endedAt = now`, and gets one last update from the finished drill, so its final value equals the result.
+- `src/lib/relay.js`: `onCompression` now returns whether the push counted for a turn. Pushes during a rhythm check do not feed the flow meter, so it drains at every switch (also in the simulator, which never stops pushing).
+- Solo practice shows the flow meter, not the On the chest card.
+- To keep the drill inside 1366×768 with the new cards: rate number `clamp(130px, 18vh, 220px)` (138 px at 768), pause timer `clamp(170px, 30vh, 340px)` (230 px at 768), compressions number slightly smaller.
+- Tests: `tests/flow.test.js`, flow/On the chest part of `tests/hud.test.js`, and `tests/main-relay.test.js` (flow falls during the switch; last live On the chest = result).
+
+**Config added (Track B section)**: `FLOW_RISE: 0.12`, `FLOW_POOR_FACTOR: 0.5`, `FLOW_HALF_LIFE_MS: 2500`, `FLOW_WARN: 50`, `FLOW_BAD: 25` (the CLAUDE.md values).
+
+**Fit**: drill and switch measured in WebKit at 1366×768 and 1920×1080 — page exactly the window size, nothing clipped; the HUD's content is exactly its 630 px column at 768.
+
+**Human checks still to do**
+- Run a drill: the meter fills in the first seconds and stays high, drains during the switch while the pause timer counts, climbs again with compressor 2.
+- One slow switch on purpose: the meter reaches red and On the chest drops.
+- Then say "ship it".

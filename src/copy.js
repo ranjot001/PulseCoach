@@ -170,6 +170,14 @@ export const TIMELINE = {
   legend: { c1: 'Compressor 1', c2: 'Compressor 2', slipping: 'Slipping', handsOff: 'Hands off' },
 };
 
+export const FLOW = {
+  heading: 'Blood flow',
+  note: 'illustration, not a measurement',
+  chestHeading: 'On the chest',
+  chestValue: (pct) => `${pct}%`,
+  chestTarget: (target) => `target ${target}%`,
+};
+
 export const SETUP = {
   heading: 'Get into position',
   startAnyway: 'Start anyway',
@@ -215,5 +223,5 @@ export const ERRORS = {
   runSimulator: 'Run simulator',
 };
 
-export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY, RELAY_RESULTS, TIMELINE };
+export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS, RELAY, RELAY_RESULTS, TIMELINE, FLOW };
 export default copy;

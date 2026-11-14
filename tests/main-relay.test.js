@@ -51,8 +51,16 @@ describe('relay drill with ?sim=1&turnSeconds=20', () => {
     expect(document.querySelector('.switch-text').textContent).toBe('Rhythm check: hands off');
     expect(document.getElementById('relay-label').textContent).toBe('Compressor 2 · Turn 2 of 2');
     expect(spoken).toContain(RELAY.prompts.rhythmCheck);
+    // The flow meter falls during the switch: the rhythm check ignores the simulator's pushes.
+    const flowAt = () => Number(document.querySelector('.hud-flow').dataset.value);
+    expect(document.querySelector('.switch-flow .flow-note').textContent).toBe('illustration, not a measurement');
+    const flowBefore = flowAt();
+    expect(flowBefore).toBeGreaterThan(70);
+    await vi.advanceTimersByTimeAsync(2500);
+    expect(flowAt()).toBeLessThan(flowBefore);
+    expect(Number(document.querySelector('.switch-flow').dataset.value)).toBe(flowAt());
 
-    await vi.advanceTimersByTimeAsync(3000);
+    await vi.advanceTimersByTimeAsync(500);
     expect(spoken).toContain(RELAY.prompts.resume);
     // The simulator keeps pushing, so the pause ends at its next compression.
     await vi.advanceTimersByTimeAsync(700);
@@ -68,6 +76,8 @@ describe('relay drill with ?sim=1&turnSeconds=20', () => {
     expect(document.querySelectorAll('#screen-results .relay-switch')).toHaveLength(1);
     expect(document.querySelectorAll('#screen-results .relay-turn')).toHaveLength(2);
     expect(Number(document.querySelector('.relay-ccf-number').textContent.replace('%', ''))).toBeGreaterThan(80);
+    // The last live "On the chest" value equals the result.
+    expect(document.querySelector('.hud-chest-number').textContent).toBe(document.querySelector('.relay-ccf-number').textContent);
     // The drill timeline is on screen: one line per compressor and the switch band.
     const chart = document.querySelector('#screen-results .timeline-svg');
     expect(chart).not.toBeNull();

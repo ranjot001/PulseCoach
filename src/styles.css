@@ -678,7 +678,7 @@ button {
 }
 
 .hud-rate-number {
-  font-size: clamp(130px, 20vh, 220px);
+  font-size: clamp(130px, 18vh, 220px);
   line-height: 1;
   color: var(--status);
   transition: color var(--ease);
@@ -738,7 +738,7 @@ button {
 
 .hud-counter-number {
   margin-top: 6px;
-  font-size: clamp(48px, 7vh, 72px);
+  font-size: clamp(44px, 6.5vh, 72px);
 }
 
 .hud-counter-number.pulse {
@@ -803,6 +803,66 @@ button {
   visibility: hidden;
 }
 
+/* Live "On the chest" and the flow meter (task B9) */
+
+.hud-chest[hidden] {
+  display: none;
+}
+
+.hud-chest-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.hud-chest-number {
+  font-size: clamp(48px, 7vh, 72px);
+  color: var(--status);
+  transition: color var(--ease);
+}
+
+.hud-chest-target {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.flow-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.flow-note {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.flow-track {
+  height: 22px;
+}
+
+.flow-fill {
+  transition: width 100ms linear, background-color var(--ease);
+}
+
+.hud-flow {
+  padding: 12px 20px 14px;
+}
+
+.switch-flow {
+  margin: 0 0 26px;
+  text-align: left;
+}
+
+.switch-flow .label {
+  color: var(--fg);
+}
+
 /* Countdown */
 
 .countdown {
@@ -850,7 +910,7 @@ button {
 }
 
 .switch-timer {
-  font-size: clamp(180px, 34vh, 340px);
+  font-size: clamp(170px, 30vh, 340px);
   line-height: 1;
   margin-top: 6px;
   color: var(--status);

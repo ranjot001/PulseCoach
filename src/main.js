@@ -11,7 +11,8 @@ import { createLeaderboard, renderLeaderboard } from './ui/leaderboard.js';
 import { createMetronome } from './audio/metronome.js';
 import { createVoice } from './audio/voice.js';
 import { createCoach } from './lib/feedback.js';
-import { summarise, summariseRelay, switchPauses } from './lib/score.js';
+import { summarise, summariseRelay, switchPauses, compressionFractionOf } from './lib/score.js';
+import { createFlowModel } from './lib/flow.js';
 import { createRelay, drillOptions } from './lib/relay.js';
 import { buildTimeline } from './lib/timeline.js';
 import { saveDrill } from './history.js';
@@ -106,6 +107,7 @@ let mode = 'relay'; // 'relay' | 'solo'
 let relay = null;
 let lastState = null;
 let coachTurn = 0;
+const flow = createFlowModel(config);
 
 function relayPhase() {
   return relay ? relay.getView(clock()).phase : null;
@@ -123,12 +125,14 @@ const engine = createEngine({
   onCompression(event) {
     hud.compression(event);
     if (screen !== 'practice') return;
+    const now = clock();
     if (mode === 'solo') {
       events.push(event);
+      flow.onCompression(event, now);
       return;
     }
-    const now = clock();
-    relay.onCompression(event, now);
+    // Pushes during a rhythm check count for no turn, so they do not feed the flow meter either.
+    if (relay.onCompression(event, now)) flow.onCompression(event, now);
     const view = relay.getView(now);
     if (view.phase === 'compressing' && view.turn !== coachTurn) {
       coachTurn = view.turn;
@@ -235,6 +239,9 @@ function startPractice() {
   engine.markRest();
   coach.reset();
   events = [];
+  flow.reset();
+  hud.setFlow(0);
+  hud.setChest(mode === 'relay' ? 0 : null);
   if (!coach.muted) voice.speak(SESSION.go);
   show('practice');
   setMetronome(true);
@@ -246,8 +253,10 @@ function startPractice() {
   const durationMs = config.SESSION_SECONDS * 1000;
   renderTimer(config.SESSION_SECONDS);
   sessionTimer = setInterval(() => {
-    const elapsed = clock() - startedAt;
+    const now = clock();
+    const elapsed = now - startedAt;
     renderTimer((durationMs - elapsed) / 1000);
+    hud.setFlow(flow.value(now));
     if (elapsed >= durationMs) finishSession();
   }, 100);
 }
@@ -261,11 +270,21 @@ function startRelay() {
   sessionTimer = setInterval(relayTick, 100);
 }
 
+/** Live "On the chest": the same rule as the result, over the drill so far. */
+function liveChest(now) {
+  const drill = relay.getDrill();
+  return compressionFractionOf({ ...drill, endedAt: drill.endedAt ?? now }, config);
+}
+
 function renderRelay() {
-  const view = relay.getView(clock());
+  const now = clock();
+  const view = relay.getView(now);
+  const flowValue = flow.value(now);
   setTurnTitle(relayLabel, view.compressor, view.turn, view.turns);
   renderTimer(view.turnSecondsLeft);
-  switchOverlay.update(view);
+  hud.setFlow(flowValue);
+  hud.setChest(liveChest(now));
+  switchOverlay.update(view, flowValue);
 }
 
 /** Drill prompts are spoken at once, cancelling any cue in progress, and respect mute. */
@@ -296,6 +315,7 @@ function finishSession() {
   hud.setCue('');
   switchOverlay.hide();
   if (mode === 'relay') {
+    hud.setChest(liveChest(clock()));
     showRelayResults();
     return;
   }

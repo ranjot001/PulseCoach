@@ -205,3 +205,48 @@ describe('relay HUD', () => {
     expect(block).toMatch(/line-height:\s*1;/);
   });
 });
+
+import { flowStatus, chestStatus, createFlowMeter } from '../src/ui/hud.js';
+
+describe('flow meter and live On the chest', () => {
+  it('meter colour follows FLOW_WARN and FLOW_BAD', () => {
+    expect(flowStatus(config.FLOW_WARN)).toBe('good');
+    expect(flowStatus(config.FLOW_WARN - 0.1)).toBe('warn');
+    expect(flowStatus(config.FLOW_BAD)).toBe('warn');
+    expect(flowStatus(config.FLOW_BAD - 0.1)).toBe('bad');
+    const m = createFlowMeter();
+    m.set(80);
+    expect(m.root.classList.contains('status-good')).toBe(true);
+    m.set(30);
+    expect(m.root.classList.contains('status-warn')).toBe(true);
+    m.set(10);
+    expect(m.root.classList.contains('status-bad')).toBe(true);
+    m.set(140);
+    expect(m.root.dataset.value).toBe('100');
+  });
+
+  it('"illustration, not a measurement" is on the drill screen and the switch overlay', () => {
+    const hudRoot = document.createElement('div');
+    createHud(hudRoot);
+    expect(hudRoot.querySelector('.hud-flow .flow-note').textContent).toBe('illustration, not a measurement');
+    const overlayRoot = document.createElement('div');
+    createSwitchOverlay(overlayRoot);
+    expect(overlayRoot.querySelector('.switch-flow .flow-note').textContent).toBe('illustration, not a measurement');
+  });
+
+  it('On the chest card shows the percentage with the results colours, and hides for solo', () => {
+    const root = document.createElement('div');
+    const hud = createHud(root);
+    const card = root.querySelector('.hud-chest');
+    expect(card.hidden).toBe(true);
+    hud.setChest(85);
+    expect(card.hidden).toBe(false);
+    expect(root.querySelector('.hud-chest-number').textContent).toBe('85%');
+    expect(card.classList.contains('status-good')).toBe(true);
+    hud.setChest(70);
+    expect(card.classList.contains('status-warn')).toBe(true);
+    hud.setChest(null);
+    expect(card.hidden).toBe(true);
+    expect([80, 79, 60, 59].map((p) => chestStatus(p))).toEqual(['good', 'warn', 'warn', 'bad']);
+  });
+});

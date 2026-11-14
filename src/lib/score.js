@@ -137,6 +137,14 @@ export function handsOffPieces(drill, cfg = defaultConfig) {
   return handsOffGaps(drill, cfg).map((g) => g.endMs - g.startMs);
 }
 
+/** Percentage of the drill that was not hands-off; 0 with no compressions. Same rule live and in the result. */
+export function compressionFractionOf(drill, cfg = defaultConfig) {
+  const durationMs = Math.max(0, (drill?.endedAt ?? 0) - (drill?.startedAt ?? 0));
+  if (durationMs === 0 || drillEvents(drill).length === 0) return 0;
+  const handsOffMs = handsOffPieces(drill, cfg).reduce((a, b) => a + b, 0);
+  return Math.round(Math.max(0, (durationMs - handsOffMs) / durationMs) * 100);
+}
+
 /** Each switch: seconds from the last compression of one turn to the first of the next, and whether the app called it early. */
 export function switchPauses(drill) {
   const turns = drill?.turns || [];
@@ -181,7 +189,7 @@ export function summariseRelay(drill, config = defaultConfig) {
   const compressions = turns.reduce((a, t) => a + t.compressions, 0);
   const pieces = handsOffPieces(drill, cfg).map((ms) => ms / 1000);
   const handsOff = pieces.reduce((a, b) => a + b, 0);
-  const compressionFraction = durationMs > 0 && compressions > 0 ? Math.round(Math.max(0, (durationMs / 1000 - handsOff) / (durationMs / 1000)) * 100) : 0;
+  const compressionFraction = compressions > 0 ? compressionFractionOf(drill, cfg) : 0;
 
   const switches = Math.max(0, turnsIn.length - 1);
   const earlySwitches = turnsIn.filter((t) => t.early).length;
