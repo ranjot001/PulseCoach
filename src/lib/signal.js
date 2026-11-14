@@ -47,11 +47,12 @@ function visiblePoint(landmarks, pair, width, height, minVis) {
 }
 
 /**
- * @param {object} config needs BASELINE_WINDOW_MS, MIN_VISIBILITY, SMOOTH_WINDOW_MS, TORSO_WINDOW_MS
+ * @param {object} config needs BASELINE_WINDOW_MS, MIN_TRAVEL, MIN_VISIBILITY, SMOOTH_WINDOW_MS, TORSO_WINDOW_MS
  */
 export function createMotionSignal(config) {
   const baselineMs = config.BASELINE_WINDOW_MS;
   const torso = windowBuffer(config.TORSO_WINDOW_MS);
+  const hipY = windowBuffer(config.TORSO_WINDOW_MS); // hips barely move: a steady reference
   const smoothBuf = windowBuffer(config.SMOOTH_WINDOW_MS);
   const baseBuf = windowBuffer(baselineMs);
   const baseHistory = windowBuffer(baselineMs); // past baseline means, for lag compensation
@@ -59,6 +60,7 @@ export function createMotionSignal(config) {
 
   function reset() {
     torso.clear();
+    hipY.clear();
     smoothBuf.clear();
     baseBuf.clear();
     baseHistory.clear();
@@ -85,25 +87,31 @@ export function createMotionSignal(config) {
       lastValidT = t;
 
       torso.push(t, len);
+      hipY.push(t, hp.y);
       const torsoLen = torso.median();
       // Shoulder height measured from the hips, in torso units. Using the hips as
       // the reference (instead of the top of the frame) keeps the signal independent
       // of where the learner sits in the frame and of the small torso-length wobble.
-      const raw = (sh.y - hp.y) / torsoLen;
+      // The hip height is a rolling median, so hip jitter does not add to the signal.
+      const raw = (sh.y - hipY.median()) / torsoLen;
 
       smoothBuf.push(t, raw);
       const smooth = smoothBuf.mean();
 
       // Baseline: moving average over BASELINE_WINDOW_MS. A trailing average lags a
       // steady drift by half a window, so add back the slope over the last window.
+      // The correction only starts once a full window of history exists, and is
+      // capped: posture drift is slow, and an uncapped correction overshoots when
+      // the learner stops mid-push, which would look like a compression.
       baseBuf.push(t, smooth);
       const ma = baseBuf.mean();
       const past = baseHistory.oldest();
       baseHistory.push(t, ma);
       let baseline = ma;
-      if (past && t - past.t > baselineMs * 0.5) {
+      if (past && t - past.t >= baselineMs * 0.9) {
         const slopePerMs = (ma - past.v) / (t - past.t);
-        baseline = ma + (slopePerMs * baselineMs) / 2;
+        const cap = config.MIN_TRAVEL / 4;
+        baseline = ma + Math.max(-cap, Math.min(cap, (slopePerMs * baselineMs) / 2));
       }
 
       return { t, raw, smooth, detrended: smooth - baseline, torsoLen, valid: true };

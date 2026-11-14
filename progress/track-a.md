@@ -26,3 +26,15 @@
 - Config: added two Track A keys, `SMOOTH_WINDOW_MS: 100` (jitter smoothing) and `TORSO_WINDOW_MS: 1000` (torso-length median), so no window is hard-coded. No existing values changed.
 - Test change: the scaffold test that looked for the "Fake engine" panel now looks for the SIMULATED badge, which this task replaces it with.
 - Human checks still to do: `/dev/stage.html` with the camera, kneel side-on and push on the pillow → one bump per push; hold still → flat line; shift weight slowly → wave stays centred. Also eyeball `/dev/stage.html?sim=1` (moving skeleton, sine wave); no browser was available to me.
+
+## A3 Compression detection and rate (on `track-a`)
+
+- Built: `src/lib/compressionDetector.js` (two-state hysteresis at ±`MIN_TRAVEL`/2 on the detrended signal; emits `index, tBottom, tTop, travel, intervalMs` on each down→up; rejects travel < `MIN_TRAVEL` and strokes closer than `MIN_INTERVAL_MS`; resets after 1 s of invalid signal), `src/lib/rate.js` (60000 / median of the last `RATE_WINDOW` intervals; null before 3 compressions or after `RATE_STALE_MS`; zones slow / good / fast / none).
+- `src/engine.js` rewritten: the scaffold stand-in is gone. Camera and `?sim=1` share one path: frame → signal → detector → rate. `onCompression`, `compressions`, `rate`, `rateZone` are real for both. `reset()` zeroes the detector, rate and count. Form fields on events are passing values and `issues` stay clear until A4. Interface unchanged.
+- **For Track B:** until A4 ships, `?sim=1&bend=30` (and `lean`, `recoil`) bends the simulated skeleton but does not raise `issues` any more. `rate` is now an integer, `null` until the third compression. The first event of a session has `intervalMs: null`.
+- Timing: `tBottom` is the midpoint of the zero crossings either side of the stroke (the bottom of the wave is flat, so the single highest sample jitters by ±2 frames). Falls back to the highest sample if the stroke is lopsided (e.g. stopping mid-push).
+- Signal change: the hip reference is now a rolling median over `TORSO_WINDOW_MS`, like torso length, so hip jitter does not add to the signal. With 2 px landmark jitter a still figure went from 7 false counts per 10 minutes to 0.
+- Robustness sweep (20 noise seeds × 30 s, with a 2 s still lead-in like the countdown): counts exact at 80/110/140 with 1× and 3× noise; 0 false counts when still with up to 2 px jitter or bouncing at half `MIN_TRAVEL`; 3 px jitter gives about 1 false count per 20 s when completely still. Worst single interval: 6–10% at default noise, and the worst ones are always the first interval after starting from rest (baseline settling); after that ≤ 5%. Rate uses the median, so it is unaffected.
+- Tests model a session like the app runs it: still for 2 s (countdown), `reset()`, then compressions. A separate test checks that a cold start with no lead-in still counts right.
+- No config values changed.
+- Human checks still to do: `/dev/stage.html` with the camera, 20 counted compressions → 20 ± 1; shift posture, talk, reach → count does not move; push to a 110 beat → rate 100 to 120 within five pushes. If it miscounts, tune `MIN_TRAVEL` in `src/config.js`.
