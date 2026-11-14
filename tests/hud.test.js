@@ -152,3 +152,16 @@ describe('HUD with the simulator', () => {
     expect(red(drive('?sim=1&bend=30'))).toEqual(['elbows']);
   });
 });
+
+// jsdom does no layout, so check the stylesheet: the rate number never drops below 120 px.
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+describe('rate number size', () => {
+  it('is at least 120 px tall at any window size', () => {
+    const css = readFileSync(resolve(import.meta.dirname, '../src/styles.css'), 'utf8');
+    const block = css.match(/\.hud-rate-number\s*\{([^}]*)\}/)[1];
+    const [, min] = block.match(/font-size:\s*clamp\((\d+)px/);
+    expect(Number(min)).toBeGreaterThanOrEqual(120);
+    expect(block).toMatch(/line-height:\s*1;/);
+  });
+});

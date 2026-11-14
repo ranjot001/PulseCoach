@@ -4,7 +4,7 @@ import { createEngine } from './engine.js';
 import { config } from './config.js';
 import { PRODUCT_NAME, FOOTER_LINE, PRACTICE, SESSION } from './copy.js';
 import { createHud } from './ui/hud.js';
-import { renderHome } from './ui/home.js';
+import { renderHome, renderError, shortcutAction, simulatorUrl } from './ui/home.js';
 import { renderResults } from './ui/results.js';
 import { createLeaderboard, renderLeaderboard } from './ui/leaderboard.js';
 import { createMetronome } from './audio/metronome.js';
@@ -19,6 +19,7 @@ const screens = {
   home: document.getElementById('screen-home'),
   session: document.getElementById('screen-session'),
   results: document.getElementById('screen-results'),
+  error: document.getElementById('screen-error'),
 };
 const countdownEl = document.getElementById('countdown');
 const countdownNumber = document.getElementById('countdown-number');
@@ -78,12 +79,14 @@ function renderVoiceToggle() {
   voiceToggle.textContent = coach.muted ? PRACTICE.voiceMuted : PRACTICE.voiceOn;
   voiceToggle.setAttribute('aria-pressed', String(coach.muted));
   voiceToggle.classList.toggle('muted', coach.muted);
+  voiceToggle.title = PRACTICE.voiceHint;
 }
-voiceToggle.addEventListener('click', () => {
+function toggleMute() {
   coach.setMuted(!coach.muted);
   voice.setMuted(coach.muted);
   renderVoiceToggle();
-});
+}
+voiceToggle.addEventListener('click', toggleMute);
 renderVoiceToggle();
 
 const clock = () => (globalThis.performance ? performance.now() : Date.now());
@@ -91,11 +94,14 @@ const clock = () => (globalThis.performance ? performance.now() : Date.now());
 // ─── Engine ───────────────────────────────────────────────────────────────
 let screen = 'home';
 let events = [];
+let homeView = null;
+let debug = false;
 
 const engine = createEngine({
   stage: document.getElementById('stage'),
   onState(state) {
     hud.update(state);
+    if (screen === 'home' && homeView) homeView.updateSetup(state.setup);
     if (screen === 'practice') coach.next(state, clock());
   },
   onCompression(event) {
@@ -103,10 +109,9 @@ const engine = createEngine({
     if (screen === 'practice') events.push(event);
   },
   onError(err) {
-    hud.setError(`${PRACTICE.errorPrefix}: ${err.message}`);
+    showError(err);
   },
 });
-let engineStarted = false;
 
 // ─── Screens ──────────────────────────────────────────────────────────────
 let countdownTimer = null;
@@ -117,6 +122,7 @@ function show(name) {
   screens.home.hidden = name !== 'home';
   screens.session.hidden = name !== 'countdown' && name !== 'practice';
   screens.results.hidden = name !== 'results';
+  screens.error.hidden = name !== 'error';
   countdownEl.hidden = name !== 'countdown';
   timerEl.hidden = name !== 'countdown' && name !== 'practice';
   document.body.dataset.screen = name;
@@ -147,17 +153,30 @@ function goHome() {
   clearTimers();
   setMetronome(false);
   show('home');
-  const { leaderboardSlot } = renderHome(screens.home, { onStart: startCountdown });
-  drawLeaderboard(leaderboardSlot);
+  homeView = renderHome(screens.home, { onStart: startCountdown });
+  drawLeaderboard(homeView.leaderboardSlot);
+}
+
+function showError(err) {
+  clearTimers();
+  setMetronome(false);
+  voice.cancel();
+  show('error');
+  renderError(screens.error, err || {}, {
+    onRetry() {
+      engine.stop();
+      goHome();
+      startEngine();
+    },
+    onSimulator() {
+      globalThis.location.assign(simulatorUrl(globalThis.location.href));
+    },
+  });
 }
 
 function startCountdown() {
-  if (screen === 'countdown' || screen === 'practice') return;
+  if (screen === 'countdown' || screen === 'practice' || screen === 'error') return;
   clearTimers();
-  if (!engineStarted) {
-    engineStarted = true;
-    engine.start();
-  }
   hud.setCue('');
   renderTimer(config.SESSION_SECONDS);
   show('countdown');
@@ -212,22 +231,47 @@ function finishSession() {
 }
 
 // ─── Keyboard ─────────────────────────────────────────────────────────────
-function isTyping(target) {
-  return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen?.()?.catch?.(() => {});
+    else document.documentElement.requestFullscreen?.()?.catch?.(() => {});
+  } catch {
+    // Fullscreen not allowed here; ignore.
+  }
 }
 
+function toggleDebug() {
+  debug = !debug;
+  engine.setDebug(debug);
+}
+
+const actions = {
+  start() {
+    if (screen === 'home' || screen === 'results') startCountdown();
+  },
+  mute: toggleMute,
+  metronome: () => setMetronome(!metronome.running),
+  debug: toggleDebug,
+  fullscreen: toggleFullscreen,
+};
+
 window.addEventListener('keydown', (e) => {
-  if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) return;
-  if (e.key === 'm' || e.key === 'M') {
-    setMetronome(!metronome.running);
-    return;
-  }
-  if (e.code === 'Space' || e.key === ' ') {
-    if (screen !== 'home' && screen !== 'results') return;
-    // Space on a focused button would also click it; handle it once here instead.
-    e.preventDefault();
-    startCountdown();
-  }
+  const action = shortcutAction(e);
+  if (!action) return;
+  // Space on a focused button would also click it; handle it once here instead.
+  if (action === 'start') e.preventDefault();
+  actions[action]();
 });
 
+// Debug tools hidden until D is pressed. The engine runs from load so the setup checklist is live.
+function startEngine() {
+  try {
+    Promise.resolve(engine.start()).catch((err) => showError({ code: 'model-failed', message: String(err?.message || err) }));
+  } catch (err) {
+    showError({ code: 'model-failed', message: String(err?.message || err) });
+  }
+}
+
+engine.setDebug(false);
 goHome();
+startEngine();

@@ -73,3 +73,25 @@
 - `?sim=1&cpm=85&bend=30`: score drops, breakdown shows rate and elbows red.
 - Enter a name, reload: the entry is still on the leaderboard.
 - Then say "ship it".
+
+## B4: Polish and shortcuts — done (2026-11-14)
+
+**Built**
+- **Readable from 3 m**: rate number `clamp(130px, 20vh, 240px)` with `line-height: 1` (≥120 px tall, checked by a stylesheet test); bigger rate label; screens are 100vh grids with `overflow: hidden`, so no scrolling at 1366×768 or 1920×1080; status colours only from `--good/--warn/--bad`.
+- **Camera error screen** (`renderError` in `src/ui/home.js`, `#screen-error`): a title and message per code (`camera-denied`, `no-camera`, `model-failed`, plus a fallback), "Try again" (stop + start the engine, back home) and "Run simulator" (same address with `sim=1`, `video` removed). A rejected `engine.start()` also lands here as `model-failed`.
+- **Setup checklist** on home from `state.setup.checks`: live ✓/✗ per check, hint under failing ones. While not ok, Start is disabled and a quiet "Start anyway" link shows; once ok, Start is the main button. Empty `checks` → checklist hidden, Start enabled. Check ids get friendly labels in `SETUP.labels` (`person`, `visible`, `side-on`, `distance`, `in-frame` from task A5).
+- **The engine now starts at page load** (not on first Start) so the checklist is live on home; the camera prompt and any camera error appear on load.
+- **Shortcuts** (`shortcutAction` in `src/ui/home.js`): Space start/restart, `M` voice mute (was metronome in B1), `B` metronome, `D` debug (`engine.setDebug`), `F` fullscreen. Ignored while typing, with modifiers or on key repeat. Legend on the home screen.
+- **Debug hidden**: `engine.setDebug(false)` at start-up.
+- **Finishing**: page title "PulseCoach · CPR compression practice", inline SVG pulse-line favicon (data URI), footer line from `src/copy.js`.
+- Tests: `tests/home.test.js`, `tests/main-errors.test.js` (injected engine: start-up debug off, D/M/B keys, live checklist, injected `camera-denied` error → error screen → Run simulator navigates to `?sim=1`, Try again restarts the engine), stylesheet size test in `tests/hud.test.js`; `tests/main.test.js` also checks the debug line stays hidden until `D` on the sim loop.
+
+**Third-party URL search**: the only `http` strings in `index.html` and Track B files are the SVG XML namespace `http://www.w3.org/2000/svg` (an identifier, never fetched). No fonts, CDNs or `@import`.
+
+**Error screen verified by injecting an error** (mocked engine in `tests/main-errors.test.js`), not in a browser with the camera blocked.
+
+**Human checks still to do**
+- Stand 3 m away: rate, indicators and cue banner readable.
+- Block the camera in the browser and reload (without `?sim=1`): the error screen appears with both buttons. Note: until Track A's camera task lands on `main`, the fake engine never errors, so this needs Track A's engine.
+- Once Track A's setup check is on `main`, kneel in position and watch the checklist tick.
+- Then say "ship it".

@@ -22,7 +22,8 @@ export const PRACTICE = {
   statusNoPerson: 'No person in view',
   metronomeOn: 'Metronome on',
   metronomeOff: 'Metronome off',
-  metronomeHint: 'Press M',
+  metronomeHint: 'Press B',
+  voiceHint: 'Press M',
   errorPrefix: 'Camera problem',
   voiceOn: 'Voice on',
   voiceMuted: 'Voice muted',
@@ -91,5 +92,50 @@ export const LEADERBOARD = {
   perMin: '/min',
 };
 
-export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD };
+export const SETUP = {
+  heading: 'Get into position',
+  startAnyway: 'Start anyway',
+  // Labels for Track A's setup check ids; unknown ids show their id.
+  labels: {
+    person: 'Person in view',
+    visible: 'Arms and hips visible',
+    'side-on': 'Side-on to the camera',
+    distance: 'Right distance',
+    'in-frame': 'Centred in the picture',
+  },
+  pass: '✓',
+  fail: '✗',
+};
+
+export const SHORTCUT_LEGEND = {
+  heading: 'Keys',
+  start: 'Start / restart',
+  mute: 'Voice on / off',
+  metronome: 'Metronome',
+  debug: 'Debug view',
+  fullscreen: 'Fullscreen',
+};
+
+export const ERRORS = {
+  'camera-denied': {
+    title: 'Camera blocked',
+    body: 'Allow camera access in the browser’s address bar, then try again.',
+  },
+  'no-camera': {
+    title: 'No camera found',
+    body: 'Connect a webcam and try again, or run the simulator.',
+  },
+  'model-failed': {
+    title: 'Body tracking did not load',
+    body: 'Try again. If it keeps failing, run the simulator.',
+  },
+  unknown: {
+    title: 'Something went wrong',
+    body: 'Try again, or run the simulator.',
+  },
+  tryAgain: 'Try again',
+  runSimulator: 'Run simulator',
+};
+
+export const copy = { PRODUCT_NAME, FOOTER_LINE, PRACTICE, CUES, GRADES, HOME, SESSION, RESULTS, LEADERBOARD, SETUP, SHORTCUT_LEGEND, ERRORS };
 export default copy;

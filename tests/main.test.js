@@ -29,6 +29,15 @@ describe('practice loop with ?sim=1', () => {
 
     expect(visible('screen-home')).toBe(true);
     expect(document.querySelector('#screen-home').textContent).toContain('Practice for adult hands-only CPR');
+    // Debug output is hidden until D is pressed (checked on the scaffold's fake engine panel when present).
+    const debugLine = document.querySelector('.fake-engine-panel > div:nth-child(2)');
+    if (debugLine) {
+      expect(debugLine.hidden).toBe(true);
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
+      expect(debugLine.hidden).toBe(false);
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'd' }));
+      expect(debugLine.hidden).toBe(true);
+    }
     document.querySelector('#screen-home .btn-primary').click();
 
     expect(visible('countdown')).toBe(true);
