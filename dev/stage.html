@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PulseCoach · stage dev</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main style="max-width: 960px; margin: 0 auto; padding: 1rem">
+      <h1>Engine stage</h1>
+      <div id="stage"></div>
+      <pre id="state"></pre>
+    </main>
+    <script type="module">
+      import { createEngine } from '/src/engine.js';
+      const out = document.getElementById('state');
+      const engine = createEngine({
+        stage: document.getElementById('stage'),
+        onState: (s) => (out.textContent = JSON.stringify(s, null, 2)),
+        onCompression: () => {},
+        onError: (e) => (out.textContent = JSON.stringify(e, null, 2)),
+      });
+      engine.setDebug(true);
+      engine.start();
+    </script>
+  </body>
+</html>

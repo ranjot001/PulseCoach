@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PulseCoach · debrief dev</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main style="max-width: 960px; margin: 0 auto; padding: 1rem">
+      <h1>Debrief card</h1>
+      <div id="card"></div>
+    </main>
+    <script type="module">
+      import { renderDebriefCard } from '/src/debrief/card.js';
+      import { goodStats } from '/tests/fixtures/stats.js';
+      renderDebriefCard(document.getElementById('card'), goodStats);
+    </script>
+  </body>
+</html>
