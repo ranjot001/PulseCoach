@@ -25,3 +25,34 @@
 **Human checks still to do**
 - Open `/dev/debrief.html` and press each button. Each debrief should read like a patient instructor and match the numbers in that sample.
 - Press "Read aloud" and listen. Headless Chrome confirmed the click raises no error, but nobody has heard it speak.
+
+## C2: AI debrief
+
+**Built**
+- `src/debrief/schema.js`: `buildPrompt(stats)` returns `{ system, user }`. It is built only from validated stats; the targets come from `src/config.js`.
+- `api/debrief.js`: Vercel-style `handler(req, res)`.
+  - POST only (405 otherwise). Bodies over 2 KB or failing `validateStats` get 400. 20 requests a minute in memory (429 after).
+  - Calls `claude-opus-5-5` with `@anthropic-ai/sdk` at low effort, `max_tokens` 16000.
+  - Returns 502 unless the reply ended with `end_turn` and has text. All errors are generic; no upstream detail reaches the browser.
+  - Uses the API's server-side refusal fallback (`fallbacks: 'default'`, beta `server-side-fallback-2026-07-01`). If Claude declines, the API retries on a fallback model in the same call. Remove those two lines to turn it off.
+  - `createHandler({ getClient, now })` exists for tests; the default export is the real handler.
+- `src/debrief/client.js`: `getDebrief(stats)` posts only the stats, with a `DEBRIEF_TIMEOUT_MS` timeout. Returns `{ text, source: 'ai' }`, or the quick tips with `source: 'fallback'` on any failure. Never throws.
+- `src/debrief/card.js`: shows the quick tips at once, then fades in the AI text and changes the label to "AI coach". A late reply never overwrites a newer card. Invalid stats never trigger a call.
+- `vite.config.js`: a small plugin mounts the same handler at `/api/debrief` under `npm run dev` and loads `.env.local` into the server's environment only.
+- Tests: `tests/api-debrief.test.js` (mocked SDK), `tests/client.test.js` (mocked `fetch`), plus additions to `tests/schema.test.js` and `tests/card.test.js`.
+
+**Config values changed**: none.
+
+**Verified**
+- `npm run check` passes: 118 tests in 7 files, build clean.
+- Local dev server: GET gives 405, a bad body gives 400.
+- `dist/` contains neither `ANTHROPIC_API_KEY` nor `sk-ant`.
+- `.env.local` is in `.gitignore`.
+
+**Not verified: the live AI call.** There was no API key on this laptop, so a POST of `goodStats` returned a generic 502 and the card kept its quick tips. To test it, put `ANTHROPIC_API_KEY=...` in `.env.local`, restart `npm run dev`, and POST `goodStats` to `/api/debrief`.
+
+**For C3 (deploy)**: set `ANTHROPIC_API_KEY` in the Vercel project's environment variables.
+
+**Human checks still to do**
+- With a key and Wi-Fi on, open `/dev/debrief.html`. The AI text should replace the quick tips within a few seconds, with the label "AI coach", and match the sample's numbers.
+- Turn Wi-Fi off and press a button again. The quick tips should stay, with no error shown.

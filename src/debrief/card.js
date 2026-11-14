@@ -1,18 +1,18 @@
 // Contract 3: the debrief card.
-// renderDebriefCard(container, stats) shows rule-based quick tips at once.
-// It never throws and never leaves the container empty.
+// renderDebriefCard(container, stats) shows rule-based quick tips at once, then
+// swaps in the AI text if it arrives. It never throws and never leaves the
+// container empty.
 
 import './card.css';
 import { validateStats } from './schema.js';
-import { fallbackDebrief } from './fallback.js';
+import { fallbackDebrief, NEUTRAL_TEXT } from './fallback.js';
+import { getDebrief } from './client.js';
 
-const NEUTRAL_TEXT = 'Finish a practice session and your coaching tips will appear here.';
-
-function debriefText(stats) {
+function cleanStats(stats) {
   try {
-    return fallbackDebrief(validateStats(stats));
+    return validateStats(stats);
   } catch {
-    return NEUTRAL_TEXT;
+    return null;
   }
 }
 
@@ -50,7 +50,8 @@ export function renderDebriefCard(container, stats) {
 
     const text = doc.createElement('p');
     text.className = 'debrief-card__text';
-    text.textContent = debriefText(stats);
+    const clean = cleanStats(stats);
+    text.textContent = clean ? fallbackDebrief(clean) : NEUTRAL_TEXT;
 
     const button = doc.createElement('button');
     button.type = 'button';
@@ -61,6 +62,22 @@ export function renderDebriefCard(container, stats) {
     header.append(title, label);
     card.append(header, text, button);
     container.replaceChildren(card);
+
+    if (clean) {
+      getDebrief(clean)
+        .then((result) => {
+          // Skip if a newer card has replaced this one in the meantime.
+          if (result?.source !== 'ai' || !card.isConnected) return;
+          text.textContent = result.text;
+          label.textContent = 'AI coach';
+          text.classList.remove('debrief-card__text--fresh');
+          void text.offsetWidth; // restart the fade if it ran before
+          text.classList.add('debrief-card__text--fresh');
+        })
+        .catch(() => {
+          // getDebrief never rejects; this is belt and braces.
+        });
+    }
   } catch {
     // Last resort: the card never throws and never leaves the container empty.
     try {

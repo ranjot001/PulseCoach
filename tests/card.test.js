@@ -1,12 +1,27 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { getDebrief } from '../src/debrief/client.js';
 import { renderDebriefCard } from '../src/debrief/card.js';
 import { fallbackDebrief } from '../src/debrief/fallback.js';
 import { goodStats, slowStats, sloppyStats } from './fixtures/stats.js';
 
-const makeContainer = () => document.createElement('div');
+// The network client is mocked; by default it answers with the fallback.
+vi.mock('../src/debrief/client.js', () => ({ getDebrief: vi.fn() }));
+
+const makeContainer = () => {
+  const el = document.createElement('div');
+  document.body.append(el);
+  return el;
+};
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+beforeEach(() => {
+  getDebrief.mockReset();
+  getDebrief.mockImplementation(async (stats) => ({ text: fallbackDebrief(stats), source: 'fallback' }));
+});
 
 afterEach(() => {
+  document.body.replaceChildren();
   delete globalThis.speechSynthesis;
   delete globalThis.SpeechSynthesisUtterance;
 });
@@ -91,5 +106,62 @@ describe('renderDebriefCard', () => {
     const container = makeContainer();
     renderDebriefCard(container, goodStats);
     expect(() => container.querySelector('button').click()).not.toThrow();
+  });
+});
+
+describe('renderDebriefCard with the AI debrief', () => {
+  it('keeps the quick tips when the source is fallback', async () => {
+    const container = makeContainer();
+    renderDebriefCard(container, slowStats);
+    await flush();
+    expect(getDebrief).toHaveBeenCalledWith(slowStats);
+    expect(container.querySelector('.debrief-card__text').textContent).toBe(fallbackDebrief(slowStats));
+    expect(container.querySelector('.debrief-card__label').textContent).toBe('Quick tips');
+  });
+
+  it('swaps in the AI text and the AI coach label when the source is ai', async () => {
+    getDebrief.mockResolvedValue({ text: 'You kept a steady rhythm. Lock your elbows next time.', source: 'ai' });
+    const container = makeContainer();
+    renderDebriefCard(container, slowStats);
+    // Quick tips first, straight away.
+    expect(container.querySelector('.debrief-card__text').textContent).toBe(fallbackDebrief(slowStats));
+    await flush();
+    const text = container.querySelector('.debrief-card__text');
+    expect(text.textContent).toBe('You kept a steady rhythm. Lock your elbows next time.');
+    expect(text.classList.contains('debrief-card__text--fresh')).toBe(true);
+    expect(container.querySelector('.debrief-card__label').textContent).toBe('AI coach');
+  });
+
+  it('Read aloud speaks the AI text once it has arrived', async () => {
+    getDebrief.mockResolvedValue({ text: 'AI words.', source: 'ai' });
+    const speak = vi.fn();
+    globalThis.speechSynthesis = { speak, cancel() {} };
+    globalThis.SpeechSynthesisUtterance = class {
+      constructor(t) {
+        this.text = t;
+      }
+    };
+    const container = makeContainer();
+    renderDebriefCard(container, goodStats);
+    await flush();
+    container.querySelector('button').click();
+    expect(speak.mock.calls[0][0].text).toBe('AI words.');
+  });
+
+  it('does not touch a newer card when an older AI reply arrives late', async () => {
+    let resolveFirst;
+    getDebrief.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)));
+    const container = makeContainer();
+    renderDebriefCard(container, goodStats);
+    renderDebriefCard(container, sloppyStats);
+    resolveFirst({ text: 'Stale words.', source: 'ai' });
+    await flush();
+    expect(container.querySelector('.debrief-card__text').textContent).toBe(fallbackDebrief(sloppyStats));
+  });
+
+  it('does not call the AI for invalid stats', async () => {
+    renderDebriefCard(makeContainer(), { nope: true });
+    await flush();
+    expect(getDebrief).not.toHaveBeenCalled();
   });
 });
