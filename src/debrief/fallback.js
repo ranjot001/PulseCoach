@@ -3,6 +3,9 @@
 
 import { config as defaultConfig } from '../config.js';
 
+// Shown when there are no usable stats to coach from.
+export const NEUTRAL_TEXT = 'Finish a practice session and your coaching tips will appear here.';
+
 const round = (n) => Math.round(n);
 
 // The four form components, in tie-break order.
