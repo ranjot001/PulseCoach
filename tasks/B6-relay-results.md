@@ -28,7 +28,7 @@ The screen the judges remember. It shows how well the team kept compressions goi
   - **Team score and grade**, very large.
   - **Compression fraction** as a big percentage with a bar marked at the 80% target. Green at or above `CCF_TARGET`, amber at or above `CCF_MIN`, red below.
   - **Switches.** Each switch pause in seconds: green up to `PAUSE_WARN_SEC`, amber up to `PAUSE_MAX_SEC`, red above, tagged "early switch" when the app called it.
-  - **One column per turn.** "Compressor 1" with compressions, average rate and score. Then either "Started slipping at 0:24: smaller pushes, slower" in amber, or "Held form to the whole turn" in green.
+  - **One column per turn.** "Compressor 1" with compressions, average rate and score. Then either "Started slipping at 0:24: smaller pushes, slower" in amber, or "Held form for the whole turn" in green.
   - The debrief card: `renderDebriefCard(container, relayStats)`. Until Track C's relay debrief ships, the card may show its neutral sentence for relay stats, which is fine.
   - A team name field with Save, the leaderboard, and Try again (Space too).
 - **Leaderboard.** Entries gain `mode: 'relay' | 'solo'`, and old entries with no mode count as solo. Relay entries show a "Relay" tag and the compression fraction. Keep the same storage key, and keep using `textContent` for names.
