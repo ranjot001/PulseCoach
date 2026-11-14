@@ -24,13 +24,28 @@ export const config = {
 
   // ─── Track B · Coach and session ───────────────────────────────────────
   METRONOME_BPM: 110,
+  METRONOME_VOLUME: 0.8, // 0..1
+  RATE_WARN_MARGIN: 10, // cpm outside the target band that still shows amber
+  GAUGE_MIN: 60, GAUGE_MAX: 160, // cpm range drawn on the rate gauge
   SESSION_SECONDS: 30,
   VOICE_COOLDOWN_MS: 3500,
   VOICE_REPEAT_MS: 8000,
+  VOICE_PERSIST_MS: 1500, // a problem must last this long before it is spoken
+  PRAISE_AFTER_MS: 6000, // clean time needed before praise
+  PRAISE_REPEAT_MS: 10000, // at most one praise this often
+  CUE_BANNER_MS: 3000, // how long a cue stays on screen
   SCORE_WEIGHTS: { rate: 40, elbows: 20, alignment: 20, recoil: 20, depth: 15 },
+  RATE_TREND_CPM: 6, // first vs last third must differ by this much to count as slowing/speeding
+  GRADE_BANDS: { lifesaver: 90, strong: 75, gettingThere: 50 }, // minimum score for each grade
+  RESULT_GOOD_PCT: 80, RESULT_WARN_PCT: 50, // colour of each breakdown bar
+  COUNTDOWN_SECONDS: 3,
+  LEADERBOARD_SIZE: 10,
+  NAME_MAX_CHARS: 12,
 
   // ─── Track C · Debrief and launch ──────────────────────────────────────
   DEBRIEF_TIMEOUT_MS: 6000,
+  DEBRIEF_STRONG_PCT: 90, // every component at or above this: "all strong", suggest a longer session
+  DEBRIEF_WEAK_PCT: 75, // a second-weakest component below this also gets a tip
 };
 
 export default config;

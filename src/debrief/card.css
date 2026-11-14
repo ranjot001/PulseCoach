@@ -1,0 +1,57 @@
+/* Debrief card. Uses only the shared colour variables from src/styles.css. */
+
+.debrief-card {
+  border: 2px solid var(--muted);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.debrief-card__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.debrief-card__title {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.debrief-card__label {
+  border: 1px solid var(--muted);
+  border-radius: 999px;
+  padding: 0.1rem 0.7rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.debrief-card__text {
+  margin: 0 0 1rem;
+  font-size: 1.45rem;
+  line-height: 1.45;
+}
+
+.debrief-card__speak {
+  border: 2px solid var(--fg);
+  border-radius: 10px;
+  padding: 0.5rem 1.1rem;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.debrief-card__speak:hover,
+.debrief-card__speak:focus-visible {
+  background: var(--fg);
+  color: var(--bg);
+}

@@ -5,16 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PulseCoach · debrief dev</title>
     <link rel="stylesheet" href="/src/styles.css" />
+    <style>
+      .dev-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+      .dev-buttons button {
+        border: 2px solid var(--muted);
+        border-radius: 10px;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        color: var(--fg);
+        font: inherit;
+        cursor: pointer;
+      }
+      .dev-buttons button[aria-pressed='true'] {
+        border-color: var(--fg);
+        background: var(--fg);
+        color: var(--bg);
+      }
+      #sample {
+        color: var(--muted);
+        font-size: 0.8rem;
+        white-space: pre-wrap;
+      }
+    </style>
   </head>
   <body>
     <main style="max-width: 960px; margin: 0 auto; padding: 1rem">
       <h1>Debrief card</h1>
+      <div class="dev-buttons">
+        <button type="button" data-sample="goodStats">Good session</button>
+        <button type="button" data-sample="slowStats">Slow session</button>
+        <button type="button" data-sample="sloppyStats">Sloppy session</button>
+      </div>
       <div id="card"></div>
+      <pre id="sample"></pre>
     </main>
     <script type="module">
       import { renderDebriefCard } from '/src/debrief/card.js';
-      import { goodStats } from '/tests/fixtures/stats.js';
-      renderDebriefCard(document.getElementById('card'), goodStats);
+      import { allStats } from '/tests/fixtures/stats.js';
+
+      const card = document.getElementById('card');
+      const sample = document.getElementById('sample');
+      const buttons = [...document.querySelectorAll('[data-sample]')];
+
+      function show(name) {
+        const stats = allStats[name];
+        renderDebriefCard(card, stats);
+        sample.textContent = JSON.stringify(stats, null, 2);
+        for (const b of buttons) b.setAttribute('aria-pressed', String(b.dataset.sample === name));
+      }
+
+      for (const b of buttons) b.addEventListener('click', () => show(b.dataset.sample));
+
+      // ?sample=slowStats opens straight on that sample; the default is goodStats.
+      const requested = new URLSearchParams(location.search).get('sample');
+      show(requested in allStats ? requested : 'goodStats');
     </script>
   </body>
 </html>
